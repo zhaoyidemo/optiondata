@@ -191,13 +191,20 @@ def compare(coin: str) -> dict:
             })
             continue
 
-        if opt_type == "PUT":
-            option_apr = (bid / strike) * (365 / days)
-        else:
-            option_apr = (bid / spot) * (365 / days)
+        # 期权 taker 手续费 0.04%（按名义价值计算）
+        fee = spot * 0.0004
+        net_bid = bid - fee
 
-        diff_apr = option_apr - dual_apr
-        spread_pct = (diff_apr / option_apr * 100) if option_apr > 0 else 0
+        if opt_type == "PUT":
+            option_apr_gross = (bid / strike) * (365 / days)
+            option_apr_net = (net_bid / strike) * (365 / days)
+        else:
+            option_apr_gross = (bid / spot) * (365 / days)
+            option_apr_net = (net_bid / spot) * (365 / days)
+
+        fee_apr = option_apr_gross - option_apr_net
+        diff_apr = option_apr_net - dual_apr
+        spread_pct = (diff_apr / option_apr_net * 100) if option_apr_net > 0 else 0
 
         results.append({
             "coin": coin,
@@ -211,7 +218,9 @@ def compare(coin: str) -> dict:
             "spotPrice": spot,
             "dualAPR": round(dual_apr, 6),
             "optionBid": round(bid, 4),
-            "optionAPR": round(option_apr, 6),
+            "optionAPR": round(option_apr_gross, 6),
+            "optionAPRNet": round(option_apr_net, 6),
+            "feeAPR": round(fee_apr, 6),
             "diffAPR": round(diff_apr, 6),
             "spreadPct": round(spread_pct, 2),
             "optionSymbol": option_symbol,

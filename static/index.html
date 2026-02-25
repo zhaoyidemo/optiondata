@@ -202,7 +202,9 @@ tr:hover{background:#ffffff06}
         <th data-key="days">天数 <span class="arrow"></span></th>
         <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
         <th data-key="optionBid">期权Bid <span class="arrow"></span></th>
-        <th data-key="optionAPR">期权APR <span class="arrow"></span></th>
+        <th data-key="optionAPR">期权APR(毛) <span class="arrow"></span></th>
+        <th data-key="feeAPR">手续费APR <span class="arrow"></span></th>
+        <th data-key="optionAPRNet">期权APR(净) <span class="arrow"></span></th>
         <th data-key="diffAPR">差值APR <span class="arrow"></span></th>
         <th data-key="spreadPct">抽成% <span class="arrow"></span></th>
       </tr>
@@ -225,7 +227,7 @@ tr:hover{background:#ffffff06}
 </details>
 
 <div class="note">
-  * 期权手续费 (maker 0.03% / taker 0.04%) 未计入，实际差值可能略小<br>
+  * 期权手续费已按 taker 0.04%（名义价值）计入，差值APR和抽成%基于扣费后的净收益计算<br>
   * 数据来源: 币安双币理财 API + 币安欧式期权 API
 </div>
 
@@ -404,6 +406,8 @@ function render() {
     <td>${(r.dualAPR * 100).toFixed(2)}%</td>
     <td>${r.optionBid.toFixed(2)}</td>
     <td>${(r.optionAPR * 100).toFixed(2)}%</td>
+    <td style="color:var(--red)">${(r.feeAPR * 100).toFixed(2)}%</td>
+    <td style="color:var(--green)">${(r.optionAPRNet * 100).toFixed(2)}%</td>
     <td class="${r.diffAPR >= 0 ? 'green' : 'red'}" style="color:var(--${r.diffAPR >= 0 ? 'green' : 'red'})">${(r.diffAPR * 100).toFixed(2)}%</td>
     <td><span class="tag ${spreadClass(r.spreadPct)}">${r.spreadPct.toFixed(1)}%</span></td>
   </tr>`).join('');
@@ -465,10 +469,17 @@ function renderBarChart(rows) {
           borderWidth: 1,
         },
         {
-          label: '期权APR',
-          data: display.map(r => +(r.optionAPR * 100).toFixed(2)),
+          label: '期权APR(净)',
+          data: display.map(r => +(r.optionAPRNet * 100).toFixed(2)),
           backgroundColor: '#4ade80aa',
           borderColor: '#4ade80',
+          borderWidth: 1,
+        },
+        {
+          label: '手续费APR',
+          data: display.map(r => +(r.feeAPR * 100).toFixed(2)),
+          backgroundColor: '#f8717166',
+          borderColor: '#f87171',
           borderWidth: 1,
         },
       ],
