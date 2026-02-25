@@ -133,20 +133,21 @@ def fetch_option_tickers(coin: str) -> dict:
     return result
 
 
-def fetch_option_depth(symbol: str) -> float:
-    """Fetch order book and return best bid price."""
+def fetch_option_depth(symbol: str) -> tuple:
+    """Fetch order book and return (best bid price, best bid qty)."""
     url = f"{BINANCE_EAPI_BASE}/eapi/v1/depth?symbol={symbol}&limit=5"
     r = requests.get(url, timeout=10)
     r.raise_for_status()
     bids = r.json().get("bids", [])
     if bids:
-        return float(bids[0][0])
-    return 0.0
+        return float(bids[0][0]), float(bids[0][1])
+    return 0.0, 0.0
 
 
 # ── core comparison logic ────────────────────────────────────────────────────
 
 def compare(coin: str) -> dict:
+    invest_amount = 100000  # 固定投入金额 10万 USDT
     spot = fetch_spot_price(coin)
     products = fetch_dual_products(coin)
     tickers = fetch_option_tickers(coin)
@@ -170,10 +171,12 @@ def compare(coin: str) -> dict:
 
         ticker = tickers.get(option_symbol)
         bid = 0.0
+        bid_qty = 0.0
         if ticker:
             bid = float(ticker.get("bidPrice", 0) or 0)
+            bid_qty = float(ticker.get("bidQty", 0) or 0)
             if bid == 0:
-                bid = fetch_option_depth(option_symbol)
+                bid, bid_qty = fetch_option_depth(option_symbol)
 
         if bid <= 0:
             unmatched.append({
@@ -206,6 +209,15 @@ def compare(coin: str) -> dict:
         diff_apr = option_apr_net - dual_apr
         spread_pct = (diff_apr / option_apr_net * 100) if option_apr_net > 0 else 0
 
+        # 10万U 实际利润计算
+        period = days / 365
+        dual_profit = invest_amount * dual_apr * period
+        option_profit = invest_amount * option_apr_net * period
+        extra_profit = option_profit - dual_profit
+
+        # Bid 流动性（以 USDT 计）
+        bid_notional = bid_qty * spot
+
         results.append({
             "coin": coin,
             "type": opt_type,
@@ -218,11 +230,16 @@ def compare(coin: str) -> dict:
             "spotPrice": spot,
             "dualAPR": round(dual_apr, 6),
             "optionBid": round(bid, 4),
+            "bidQty": round(bid_qty, 4),
+            "bidNotional": round(bid_notional, 2),
             "optionAPR": round(option_apr_gross, 6),
             "optionAPRNet": round(option_apr_net, 6),
             "feeAPR": round(fee_apr, 6),
             "diffAPR": round(diff_apr, 6),
             "spreadPct": round(spread_pct, 2),
+            "dualProfit": round(dual_profit, 2),
+            "optionProfit": round(option_profit, 2),
+            "extraProfit": round(extra_profit, 2),
             "optionSymbol": option_symbol,
         })
 

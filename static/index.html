@@ -108,6 +108,11 @@ tr:hover{background:#ffffff06}
 .tag.low{background:#4ade8022;color:var(--green)}
 .tag.mid{background:#fbbf2422;color:var(--yellow)}
 .tag.high{background:#f8717122;color:var(--red)}
+.tag.liq-high{background:#4ade8022;color:var(--green)}
+.tag.liq-mid{background:#fbbf2422;color:var(--yellow)}
+.tag.liq-low{background:#f8717122;color:var(--red)}
+.tag.liq-none{background:#64748b22;color:#64748b}
+.profit{font-weight:600}
 
 /* collapsible */
 .collapsible{
@@ -174,6 +179,7 @@ tr:hover{background:#ffffff06}
 <div class="stats">
   <div class="stat-card"><div class="label">平均抽成</div><div class="value yellow" id="statAvgSpread">—</div></div>
   <div class="stat-card"><div class="label">平均多赚 APR</div><div class="value green" id="statAvgDiff">—</div></div>
+  <div class="stat-card"><div class="label">10万U最大多赚</div><div class="value green" id="statMaxExtra">—</div></div>
   <div class="stat-card"><div class="label">匹配产品数</div><div class="value purple" id="statCount">—</div></div>
   <div class="stat-card"><div class="label">现货价格</div><div class="value blue" id="statSpot">—</div></div>
 </div>
@@ -196,16 +202,17 @@ tr:hover{background:#ffffff06}
     <thead>
       <tr>
         <th data-key="type">类型 <span class="arrow"></span></th>
-        <th data-key="investCoin">投入 <span class="arrow"></span></th>
         <th data-key="strike">行权价 <span class="arrow"></span></th>
         <th data-key="expiry">到期日 <span class="arrow"></span></th>
         <th data-key="days">天数 <span class="arrow"></span></th>
         <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
-        <th data-key="optionBid">期权Bid <span class="arrow"></span></th>
-        <th data-key="optionAPR">期权APR(毛) <span class="arrow"></span></th>
-        <th data-key="feeAPR">手续费APR <span class="arrow"></span></th>
         <th data-key="optionAPRNet">期权APR(净) <span class="arrow"></span></th>
         <th data-key="diffAPR">差值APR <span class="arrow"></span></th>
+        <th data-key="dualProfit">双币利润 <span class="arrow"></span></th>
+        <th data-key="optionProfit">期权利润 <span class="arrow"></span></th>
+        <th data-key="extraProfit">多赚 <span class="arrow"></span></th>
+        <th data-key="optionBid">Bid价 <span class="arrow"></span></th>
+        <th data-key="bidNotional">Bid深度 <span class="arrow"></span></th>
         <th data-key="spreadPct">抽成% <span class="arrow"></span></th>
       </tr>
     </thead>
@@ -379,8 +386,10 @@ function render() {
   const diffs = rows.map(r => r.diffAPR);
   const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
+  const extras = rows.map(r => r.extraProfit);
   $('#statAvgSpread').textContent = spreads.length ? avg(spreads).toFixed(1) + '%' : '—';
   $('#statAvgDiff').textContent = diffs.length ? (avg(diffs) * 100).toFixed(2) + '%' : '—';
+  $('#statMaxExtra').textContent = extras.length ? '$' + Math.max(...extras).toFixed(0) : '—';
   $('#statCount').textContent = rows.length;
   $('#statSpot').textContent = '$' + Number(rawData.spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -399,16 +408,17 @@ function render() {
   const tbody = $('#tableBody');
   tbody.innerHTML = rows.map(r => `<tr>
     <td><span class="tag ${r.type.toLowerCase()}">${r.typeLabel}</span></td>
-    <td>${r.investCoin}</td>
     <td>${fmtStrike(r.strike)}</td>
     <td>${r.expiry}</td>
     <td>${r.daysLabel}</td>
     <td>${(r.dualAPR * 100).toFixed(2)}%</td>
-    <td>${r.optionBid.toFixed(2)}</td>
-    <td>${(r.optionAPR * 100).toFixed(2)}%</td>
-    <td style="color:var(--red)">${(r.feeAPR * 100).toFixed(2)}%</td>
     <td style="color:var(--green)">${(r.optionAPRNet * 100).toFixed(2)}%</td>
-    <td class="${r.diffAPR >= 0 ? 'green' : 'red'}" style="color:var(--${r.diffAPR >= 0 ? 'green' : 'red'})">${(r.diffAPR * 100).toFixed(2)}%</td>
+    <td style="color:var(--${r.diffAPR >= 0 ? 'green' : 'red'})">${(r.diffAPR * 100).toFixed(2)}%</td>
+    <td class="profit" style="color:var(--purple)">$${r.dualProfit.toFixed(0)}</td>
+    <td class="profit" style="color:var(--green)">$${r.optionProfit.toFixed(0)}</td>
+    <td class="profit" style="color:var(--${r.extraProfit >= 0 ? 'yellow' : 'red'})">$${r.extraProfit.toFixed(0)}</td>
+    <td>${r.optionBid.toFixed(2)}</td>
+    <td><span class="tag ${liqClass(r.bidNotional)}">${fmtNotional(r.bidNotional)}</span></td>
     <td><span class="tag ${spreadClass(r.spreadPct)}">${r.spreadPct.toFixed(1)}%</span></td>
   </tr>`).join('');
 
@@ -445,6 +455,20 @@ function spreadClass(pct) {
   if (pct < 15) return 'low';
   if (pct <= 20) return 'mid';
   return 'high';
+}
+
+function liqClass(notional) {
+  if (notional >= 50000) return 'liq-high';
+  if (notional >= 10000) return 'liq-mid';
+  if (notional > 0) return 'liq-low';
+  return 'liq-none';
+}
+
+function fmtNotional(v) {
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return '$' + (v / 1000).toFixed(1) + 'K';
+  if (v > 0) return '$' + v.toFixed(0);
+  return '—';
 }
 
 // ── Charts ──────────────────────────────────────────────────────────────────
