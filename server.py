@@ -69,8 +69,8 @@ def _days_until(ts_ms) -> float:
 
 def _days_label(days: float) -> str:
     if days < 1:
-        return f"{int(days * 24)}H"
-    return f"{math.ceil(days)}D"
+        return f"{int(days * 24)}小时"
+    return f"{math.ceil(days)}天"
 
 
 # ── Binance API calls ───────────────────────────────────────────────────────
