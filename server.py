@@ -3,6 +3,7 @@ import time
 import hmac
 import hashlib
 import math
+import traceback
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
@@ -262,7 +263,9 @@ def api_spot_price():
         price = fetch_spot_price(coin)
         return jsonify({"ok": True, "coin": coin, "price": price})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/spot-price?coin={coin}\n{tb}")
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 
 @app.route("/api/dual-products")
@@ -274,7 +277,9 @@ def api_dual_products():
         products = fetch_dual_products(coin)
         return jsonify({"ok": True, "coin": coin, "count": len(products), "products": products})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/dual-products?coin={coin}\n{tb}")
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 
 @app.route("/api/options-tickers")
@@ -286,7 +291,9 @@ def api_options_tickers():
         tickers = fetch_option_tickers(coin)
         return jsonify({"ok": True, "coin": coin, "count": len(tickers), "tickers": tickers})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/options-tickers?coin={coin}\n{tb}")
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 
 @app.route("/api/compare")
@@ -298,7 +305,9 @@ def api_compare():
         data = compare(coin)
         return jsonify({"ok": True, "data": data})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/compare?coin={coin}\n{tb}")
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 
 if __name__ == "__main__":
