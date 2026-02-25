@@ -194,8 +194,8 @@ def compare(coin: str) -> dict:
             })
             continue
 
-        # 期权 taker 手续费 0.04%（按名义价值计算）
-        fee = spot * 0.0004
+        # 期权交易手续费 0.024%（按名义价值计算；行权费 0.015% 仅实值到期时收取，未计入）
+        fee = spot * 0.00024
         net_bid = bid - fee
 
         if opt_type == "PUT":
