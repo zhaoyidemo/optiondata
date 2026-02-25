@@ -19,7 +19,7 @@ BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
 BINANCE_API_BASE = os.environ.get("BINANCE_API_BASE", "https://api.binance.com")
 BINANCE_EAPI_BASE = os.environ.get("BINANCE_EAPI_BASE", "https://eapi.binance.com")
 
-SUPPORTED_COINS = ["ETH", "BTC", "BNB", "SOL", "XRP", "DOGE"]
+SUPPORTED_COINS = ["ETH", "BTC"]
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -175,8 +175,6 @@ def compare(coin: str) -> dict:
         if ticker:
             bid = float(ticker.get("bidPrice", 0) or 0)
             bid_qty = float(ticker.get("bidQty", 0) or 0)
-            if bid == 0:
-                bid, bid_qty = fetch_option_depth(option_symbol)
 
         if bid <= 0:
             unmatched.append({
