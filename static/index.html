@@ -131,6 +131,71 @@ tr:hover{background:#ffffff06}
 .unmatched-table th{color:var(--text2);font-weight:500}
 
 .note{font-size:.7rem;color:var(--text2);text-align:center;padding:20px}
+
+/* position panel */
+.pos-section{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:24px;padding:20px;
+}
+.pos-section h2{font-size:.95rem;color:var(--yellow);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.pos-section h2 .pos-count{
+  font-size:.7rem;background:var(--yellow);color:var(--bg);
+  padding:2px 8px;border-radius:10px;font-weight:700;
+}
+.pos-empty{color:var(--text2);font-size:.8rem;padding:20px 0;text-align:center}
+.pos-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.pos-table th{
+  padding:10px 8px;text-align:left;color:var(--text2);font-weight:500;
+  border-bottom:1px solid var(--border);white-space:nowrap;font-size:.7rem;
+}
+.pos-table td{padding:8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.pos-table tr:hover{background:#ffffff06}
+.signal{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:600}
+.signal.strong-close{background:#f8717133;color:var(--red)}
+.signal.suggest-close{background:#fbbf2433;color:var(--yellow)}
+.signal.hold{background:#4ade8033;color:var(--green)}
+.signal.watch{background:#64748b33;color:#94a3b8}
+.btn-sm{
+  padding:3px 10px;border-radius:4px;font-size:.68rem;cursor:pointer;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  font-family:inherit;transition:all .15s;
+}
+.btn-sm:hover{border-color:var(--purple);color:var(--purple)}
+.btn-sm.danger:hover{border-color:var(--red);color:var(--red)}
+.btn-open{
+  padding:2px 8px;border-radius:4px;font-size:.66rem;cursor:pointer;
+  border:1px solid var(--green);background:transparent;color:var(--green);
+  font-family:inherit;transition:all .15s;
+}
+.btn-open:hover{background:var(--green);color:var(--bg)}
+
+/* modal */
+.modal-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;
+}
+.modal-overlay.hidden{display:none}
+.modal{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:24px;width:420px;max-width:95vw;
+}
+.modal h3{font-size:.9rem;color:var(--green);margin-bottom:16px}
+.modal .form-row{margin-bottom:12px}
+.modal .form-row label{display:block;font-size:.7rem;color:var(--text2);margin-bottom:4px}
+.modal .form-row input{
+  width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-family:inherit;font-size:.8rem;
+}
+.modal .form-row input:focus{outline:none;border-color:var(--purple)}
+.modal .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal .form-actions button{
+  padding:8px 20px;border-radius:6px;font-size:.78rem;cursor:pointer;
+  font-family:inherit;border:none;transition:all .15s;
+}
+.modal .btn-cancel{background:var(--border);color:var(--text)}
+.modal .btn-cancel:hover{background:#3a3d4a}
+.modal .btn-submit{background:var(--green);color:var(--bg);font-weight:600}
+.modal .btn-submit:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -212,10 +277,46 @@ tr:hover{background:#ffffff06}
         <th data-key="optionBid">Bid价 <span class="arrow"></span></th>
         <th data-key="bidNotional">Bid深度 <span class="arrow"></span></th>
         <th data-key="spreadPct">抽成% <span class="arrow"></span></th>
+        <th>操作</th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
   </table>
+</div>
+
+<!-- Position Panel -->
+<div class="pos-section" id="posSection">
+  <h2>📊 我的持仓 <span class="pos-count" id="posCount">0</span></h2>
+  <div id="posContent">
+    <div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>
+  </div>
+</div>
+
+<!-- Position Modal -->
+<div class="modal-overlay hidden" id="posModal">
+  <div class="modal">
+    <h3 id="modalTitle">新建持仓</h3>
+    <div class="form-row">
+      <label>期权合约</label>
+      <input type="text" id="posSymbol" placeholder="如 ETH-260327-2000-P">
+    </div>
+    <div class="form-row">
+      <label>卖出价格（权利金）</label>
+      <input type="number" id="posSellPrice" step="any" placeholder="如 50.5">
+    </div>
+    <div class="form-row">
+      <label>数量（币数）</label>
+      <input type="number" id="posQty" step="any" placeholder="如 1">
+    </div>
+    <div class="form-row">
+      <label>建仓日期</label>
+      <input type="date" id="posDate">
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-submit" onclick="savePosition()">确认建仓</button>
+    </div>
+  </div>
 </div>
 
 <!-- Unmatched -->
@@ -246,6 +347,7 @@ let sortAsc = false;
 let autoRefresh = false;
 let autoTimer = null;
 let rawData = null;
+let allTickers = {};  // symbol -> askPrice 映射
 
 // ── Chart instances ─────────────────────────────────────────────────────────
 let barChart = null;
@@ -345,12 +447,25 @@ async function checkHealth() {
 async function loadData() {
   setStatus('loading', `正在加载 ${currentCoin} 数据…`);
   try {
-    const res = await fetch(`/api/compare?coin=${currentCoin}`);
-    const j = await res.json();
+    const [compareRes, tickerRes] = await Promise.all([
+      fetch(`/api/compare?coin=${currentCoin}`),
+      fetch(`/api/options-tickers?coin=${currentCoin}`)
+    ]);
+    const j = await compareRes.json();
     if (!j.ok) throw new Error(j.error || 'Unknown error');
     rawData = j.data;
+    // 解析 tickers 用于持仓面板（tickers 是 {symbol: tickerObj} 的字典）
+    try {
+      const tj = await tickerRes.json();
+      if (tj.ok && tj.tickers) {
+        Object.assign(allTickers, tj.tickers);
+      }
+    } catch(_) {}
+    // 如果持仓中有非当前币种的合约，也获取其 tickers
+    await loadMissingTickers();
     setStatus('ok', `${currentCoin} 数据加载完成 · ${rawData.results.length} 个匹配产品`);
     render();
+    renderPositions();
   } catch (e) {
     setStatus('err', '加载失败: ' + e.message);
   }
@@ -418,6 +533,7 @@ function render() {
     <td>${r.optionBid.toFixed(2)}</td>
     <td><span class="tag ${liqClass(r.bidNotional)}">${fmtNotional(r.bidNotional)}</span></td>
     <td><span class="tag ${spreadClass(r.spreadPct)}">${r.spreadPct.toFixed(1)}%</span></td>
+    <td><button class="btn-open" onclick="openPositionModal('${r.optionSymbol || buildSymbol(r)}', ${r.optionBid})">建仓</button></td>
   </tr>`).join('');
 
   // unmatched
@@ -587,6 +703,206 @@ function setStatus(type, msg) {
   bar.className = 'status-bar ' + type;
   $('#statusText').textContent = msg;
 }
+
+// ── Position Management ─────────────────────────────────────────────────────
+
+function getPositions() {
+  try { return JSON.parse(localStorage.getItem('positions') || '[]'); }
+  catch(_) { return []; }
+}
+
+function savePositions(positions) {
+  localStorage.setItem('positions', JSON.stringify(positions));
+}
+
+// 从合约符号解析到期日，如 ETH-260327-2000-P → 2026-03-27
+function parseExpiryFromSymbol(symbol) {
+  const parts = symbol.split('-');
+  if (parts.length < 3) return null;
+  const dateStr = parts[1]; // YYMMDD
+  if (dateStr.length !== 6) return null;
+  const yy = dateStr.substring(0, 2);
+  const mm = dateStr.substring(2, 4);
+  const dd = dateStr.substring(4, 6);
+  return new Date(2000 + parseInt(yy), parseInt(mm) - 1, parseInt(dd));
+}
+
+// 从合约符号解析币种
+function parseCoinFromSymbol(symbol) {
+  return symbol.split('-')[0] || '';
+}
+
+// 构建合约符号（从对比表格行数据）
+function buildSymbol(r) {
+  return r.optionSymbol || `${currentCoin}-${r.expiry.replace(/-/g, '').substring(2)}-${r.strike}-${r.type === 'CALL' ? 'C' : 'P'}`;
+}
+
+// 加载持仓中缺失的币种 tickers
+async function loadMissingTickers() {
+  const positions = getPositions();
+  const neededCoins = new Set();
+  positions.forEach(p => {
+    const coin = parseCoinFromSymbol(p.symbol);
+    if (coin && !allTickers[p.symbol]) neededCoins.add(coin);
+  });
+  for (const coin of neededCoins) {
+    try {
+      const res = await fetch(`/api/options-tickers?coin=${coin}`);
+      const j = await res.json();
+      if (j.ok && j.tickers) Object.assign(allTickers, j.tickers);
+    } catch(_) {}
+  }
+}
+
+// 打开建仓弹窗
+function openPositionModal(symbol, bidPrice) {
+  $('#posSymbol').value = symbol || '';
+  $('#posSellPrice').value = bidPrice ? Number(bidPrice).toFixed(2) : '';
+  $('#posQty').value = '';
+  $('#posDate').value = new Date().toISOString().split('T')[0];
+  $('#posModal').classList.remove('hidden');
+  if (!symbol) $('#posSymbol').focus();
+  else $('#posQty').focus();
+}
+
+function closeModal() {
+  $('#posModal').classList.add('hidden');
+}
+
+// 保存持仓
+function savePosition() {
+  const symbol = $('#posSymbol').value.trim().toUpperCase();
+  const sellPrice = parseFloat($('#posSellPrice').value);
+  const qty = parseFloat($('#posQty').value);
+  const date = $('#posDate').value;
+
+  if (!symbol) return alert('请输入期权合约');
+  if (!sellPrice || sellPrice <= 0) return alert('请输入有效的卖出价格');
+  if (!qty || qty <= 0) return alert('请输入有效的数量');
+  if (!date) return alert('请选择建仓日期');
+
+  const positions = getPositions();
+  positions.push({
+    id: Date.now().toString(),
+    symbol,
+    sellPrice,
+    qty,
+    openDate: date,
+  });
+  savePositions(positions);
+  closeModal();
+  renderPositions();
+}
+
+// 删除持仓
+function deletePosition(id) {
+  if (!confirm('确定删除此持仓记录？')) return;
+  const positions = getPositions().filter(p => p.id !== id);
+  savePositions(positions);
+  renderPositions();
+}
+
+// 渲染持仓面板
+function renderPositions() {
+  const positions = getPositions();
+  const countEl = $('#posCount');
+  const contentEl = $('#posContent');
+  countEl.textContent = positions.length;
+
+  if (positions.length === 0) {
+    contentEl.innerHTML = '<div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>';
+    return;
+  }
+
+  const now = new Date();
+  const rows = positions.map(p => {
+    const ticker = allTickers[p.symbol];
+    const askPrice = ticker ? parseFloat(ticker.askPrice) : null;
+    const expiry = parseExpiryFromSymbol(p.symbol);
+    const openDate = new Date(p.openDate);
+
+    // 剩余天数
+    const daysLeft = expiry ? Math.max(0, Math.ceil((expiry - now) / 86400000)) : null;
+    // 已持有天数
+    const daysHeld = Math.max(1, Math.ceil((now - openDate) / 86400000));
+
+    // 计算
+    let earnedPct = null, earnedUsd = null, holdApr = null, closeApr = null, signal = '';
+
+    if (askPrice !== null) {
+      earnedPct = (p.sellPrice - askPrice) / p.sellPrice * 100;
+      earnedUsd = (p.sellPrice - askPrice) * p.qty;
+
+      // 持有年化：继续持有到期，剩余可赚 = askPrice，年化 = (askPrice/sellPrice) × (365/剩余天数)
+      if (daysLeft !== null && daysLeft > 0) {
+        holdApr = (askPrice / p.sellPrice) * (365 / daysLeft) * 100;
+      }
+
+      // 平仓年化：已赚利润 / 卖出价 × (365 / 已持有天数)
+      if (daysHeld > 0) {
+        closeApr = (earnedPct / 100) * (365 / daysHeld) * 100;
+      }
+
+      // 信号判断
+      if (earnedPct < 0) {
+        signal = '<span class="signal watch">⚪ 观察</span>';
+      } else if (earnedPct >= 80) {
+        signal = '<span class="signal strong-close">🔴 强烈建议平仓</span>';
+      } else if (earnedPct >= 50 && daysLeft !== null && daysLeft >= 10) {
+        signal = '<span class="signal suggest-close">🟡 建议平仓再开</span>';
+      } else if (closeApr !== null && holdApr !== null && closeApr > holdApr && earnedPct > 0) {
+        signal = '<span class="signal suggest-close">🟡 平仓更优</span>';
+      } else if (daysLeft !== null && daysLeft <= 2 && earnedPct > 0) {
+        signal = '<span class="signal hold">🟢 持有到期</span>';
+      } else {
+        signal = '<span class="signal watch">⚪ 观察</span>';
+      }
+    }
+
+    return { ...p, askPrice, expiry, daysLeft, daysHeld, earnedPct, earnedUsd, holdApr, closeApr, signal };
+  });
+
+  const fmtPct = v => v !== null ? v.toFixed(1) + '%' : '—';
+  const fmtUsd = v => v !== null ? (v >= 0 ? '+' : '') + '$' + v.toFixed(2) : '—';
+  const pctColor = v => v === null ? 'var(--text2)' : v >= 0 ? 'var(--green)' : 'var(--red)';
+  const aprFmt = v => v !== null ? v.toFixed(1) + '%' : '—';
+
+  contentEl.innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="pos-table">
+      <thead><tr>
+        <th>合约</th><th>卖出价</th><th>数量</th><th>当前Ask</th>
+        <th>已赚%</th><th>已赚$</th><th>剩余天数</th>
+        <th>持有年化</th><th>平仓年化</th><th>信号</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td style="font-size:.7rem">${r.symbol}</td>
+        <td>${r.sellPrice.toFixed(2)}</td>
+        <td>${r.qty}</td>
+        <td>${r.askPrice !== null ? r.askPrice.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
+        <td style="color:${pctColor(r.earnedPct)}">${fmtPct(r.earnedPct)}</td>
+        <td style="color:${pctColor(r.earnedUsd)}">${fmtUsd(r.earnedUsd)}</td>
+        <td>${r.daysLeft !== null ? r.daysLeft + '天' : '—'}</td>
+        <td>${aprFmt(r.holdApr)}</td>
+        <td>${aprFmt(r.closeApr)}</td>
+        <td>${r.signal}</td>
+        <td><button class="btn-sm danger" onclick="deletePosition('${r.id}')">删除</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn-sm" onclick="openPositionModal('','')">+ 手动添加</button>
+    </div>
+  `;
+}
+
+// 页面加载时渲染持仓
+renderPositions();
+
+// 点击弹窗外部关闭
+$('#posModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
 </script>
 </body>
 </html>
