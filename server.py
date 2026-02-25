@@ -14,6 +14,10 @@ app = Flask(__name__, static_folder="static")
 BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
 
+# 币安 API 基础 URL（可通过环境变量覆盖，用于代理或切换域名）
+BINANCE_API_BASE = os.environ.get("BINANCE_API_BASE", "https://api.binance.com")
+BINANCE_EAPI_BASE = os.environ.get("BINANCE_EAPI_BASE", "https://eapi.binance.com")
+
 SUPPORTED_COINS = ["ETH", "BTC", "BNB", "SOL", "XRP", "DOGE"]
 
 
@@ -71,7 +75,7 @@ def _days_label(days: float) -> str:
 # ── Binance API calls ───────────────────────────────────────────────────────
 
 def fetch_spot_price(coin: str) -> float:
-    url = f"https://api.binance.com/api/v3/ticker/price?symbol={coin}USDT"
+    url = f"{BINANCE_API_BASE}/api/v3/ticker/price?symbol={coin}USDT"
     r = requests.get(url, timeout=10)
     r.raise_for_status()
     return float(r.json()["price"])
@@ -79,7 +83,7 @@ def fetch_spot_price(coin: str) -> float:
 
 def fetch_dual_products(coin: str) -> list:
     """Fetch dual investment products for both CALL and PUT."""
-    base_url = "https://api.binance.com/sapi/v1/dci/product/list"
+    base_url = f"{BINANCE_API_BASE}/sapi/v1/dci/product/list"
     products = []
 
     for opt_type, invest, exercised in [
@@ -116,7 +120,7 @@ def fetch_dual_products(coin: str) -> list:
 
 def fetch_option_tickers(coin: str) -> dict:
     """Fetch all option tickers and return dict keyed by symbol."""
-    url = "https://eapi.binance.com/eapi/v1/ticker"
+    url = f"{BINANCE_EAPI_BASE}/eapi/v1/ticker"
     r = requests.get(url, timeout=15)
     r.raise_for_status()
     prefix = f"{coin}-"
@@ -130,7 +134,7 @@ def fetch_option_tickers(coin: str) -> dict:
 
 def fetch_option_depth(symbol: str) -> float:
     """Fetch order book and return best bid price."""
-    url = f"https://eapi.binance.com/eapi/v1/depth?symbol={symbol}&limit=5"
+    url = f"{BINANCE_EAPI_BASE}/eapi/v1/depth?symbol={symbol}&limit=5"
     r = requests.get(url, timeout=10)
     r.raise_for_status()
     bids = r.json().get("bids", [])
