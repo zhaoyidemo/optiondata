@@ -262,6 +262,7 @@ tr:hover{background:#ffffff06}
         <th data-key="lastPrice">最新价 <span class="arrow"></span></th>
         <th data-key="volume">24h量 <span class="arrow"></span></th>
         <th data-key="aprNet">卖出APR <span class="arrow"></span></th>
+        <th data-key="profit">10万U利润 <span class="arrow"></span></th>
         <th>操作</th>
       </tr>
     </thead>
@@ -474,6 +475,7 @@ async function loadData() {
         lastPrice,
         volume,
         aprNet: Math.round(aprNet * 10000) / 10000,
+        profit: Math.round(100000 * aprNet * (parsed.daysLeft / 365) * 100) / 100,
       });
     }
 
@@ -576,6 +578,7 @@ function render() {
     <td>${r.lastPrice > 0 ? r.lastPrice.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
     <td>${r.volume > 0 ? fmtVolume(r.volume) : '<span style="color:var(--text2)">—</span>'}</td>
     <td style="color:${r.aprNet > 0 ? 'var(--green)' : 'var(--text2)'}">${r.aprNet > 0 ? (r.aprNet * 100).toFixed(2) + '%' : '—'}</td>
+    <td style="color:${r.profit > 0 ? 'var(--yellow)' : 'var(--text2)'};font-weight:600">${r.profit > 0 ? '$' + r.profit.toFixed(0) : '—'}</td>
     <td><button class="btn-open" onclick="openPositionModal('${r.symbol}', ${r.bid})">建仓</button></td>
   </tr>`).join('');
 }
