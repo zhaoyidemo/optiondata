@@ -220,13 +220,14 @@ tr:hover{background:#ffffff06}
   </div>
   <label>期限</label>
   <div class="pill-group" id="termGroup">
-    <button class="pill active" data-days="0">全部</button>
-    <button class="pill" data-days="3">≤3天</button>
-    <button class="pill" data-days="7">≤7天</button>
-    <button class="pill" data-days="14">≤14天</button>
-    <button class="pill" data-days="30">≤30天</button>
-    <button class="pill" data-days="90">≤90天</button>
+    <button class="pill active" data-min="0" data-max="0">全部</button>
+    <button class="pill" data-min="0" data-max="7">本周≤7天</button>
+    <button class="pill" data-min="7" data-max="30">近期7-30天</button>
+    <button class="pill" data-min="30" data-max="90">中期30-90天</button>
+    <button class="pill" data-min="90" data-max="9999">远期>90天</button>
   </div>
+  <label>到期日</label>
+  <div class="pill-group" id="expiryGroup" style="flex-wrap:wrap"></div>
   <label>价值状态</label>
   <div class="pill-group" id="moneyGroup">
     <button class="pill active" data-money="ALL">全部</button>
@@ -314,7 +315,9 @@ tr:hover{background:#ffffff06}
 // ── State ───────────────────────────────────────────────────────────────────
 let currentCoin = 'ETH';
 let filterType = 'ALL';
-let filterDays = 0;
+let filterDaysMin = 0;
+let filterDaysMax = 0;
+let filterExpiry = 'ALL';
 let filterMoney = 'ALL';
 let sortKey = 'aprNet';
 let sortAsc = false;
@@ -357,7 +360,28 @@ $('#termGroup').addEventListener('click', (e) => {
   if (!btn) return;
   $$('#termGroup .pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  filterDays = parseInt(btn.dataset.days);
+  filterDaysMin = parseInt(btn.dataset.min);
+  filterDaysMax = parseInt(btn.dataset.max);
+  filterExpiry = 'ALL';
+  $$('#expiryGroup .pill').forEach(b => b.classList.remove('active'));
+  const allBtn = $('#expiryGroup .pill[data-expiry="ALL"]');
+  if (allBtn) allBtn.classList.add('active');
+  render();
+});
+
+// ── Expiry pills (dynamic) ──────────────────────────────────────────────────
+$('#expiryGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#expiryGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterExpiry = btn.dataset.expiry;
+  if (filterExpiry !== 'ALL') {
+    filterDaysMin = 0;
+    filterDaysMax = 0;
+    $$('#termGroup .pill').forEach(b => b.classList.remove('active'));
+    $('#termGroup .pill[data-max="0"]').classList.add('active');
+  }
   render();
 });
 
@@ -486,6 +510,7 @@ async function loadData() {
     const timeStr = now.toISOString().replace('T', ' ').replace(/\.\d+Z/, ' UTC');
     setStatus('ok', `${currentCoin} 期权数据加载完成 · ${parsedOptions.length} 个合约`);
     $('#updateTime').textContent = timeStr;
+    buildExpiryPills();
     render();
     renderPositions();
   } catch (e) {
@@ -516,6 +541,18 @@ function parseSymbol(symbol) {
   };
 }
 
+// ── 动态生成到期日 pills ─────────────────────────────────────────────────────
+function buildExpiryPills() {
+  const expiries = [...new Set(parsedOptions.map(r => r.expiryStr))].sort();
+  const group = $('#expiryGroup');
+  const prev = filterExpiry;
+  group.innerHTML = `<button class="pill ${prev === 'ALL' ? 'active' : ''}" data-expiry="ALL">全部</button>` +
+    expiries.map(exp => {
+      const days = parsedOptions.find(r => r.expiryStr === exp)?.daysLeft || 0;
+      return `<button class="pill ${prev === exp ? 'active' : ''}" data-expiry="${exp}">${exp.slice(5)} (${daysLabel(days)})</button>`;
+    }).join('');
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 function render() {
   // header
@@ -525,7 +562,8 @@ function render() {
   // filter
   let rows = parsedOptions.slice();
   if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
-  if (filterDays > 0) rows = rows.filter(r => r.daysLeft <= filterDays);
+  if (filterDaysMax > 0) rows = rows.filter(r => r.daysLeft >= filterDaysMin && r.daysLeft <= filterDaysMax);
+  if (filterExpiry !== 'ALL') rows = rows.filter(r => r.expiryStr === filterExpiry);
   if (filterMoney === 'OTM') rows = rows.filter(r => r.isOTM);
   else if (filterMoney === 'ITM') rows = rows.filter(r => !r.isOTM);
 
