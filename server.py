@@ -270,6 +270,11 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+@app.route("/options")
+def options_page():
+    return send_from_directory("static", "options.html")
+
+
 @app.route("/api/health")
 def health():
     return jsonify({

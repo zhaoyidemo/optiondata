@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>币安双币理财 vs 期权卖出 — 收益对比</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<title>期权行情 — 全部 BTC/ETH 期权</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -19,7 +18,25 @@ body{
   font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);
   min-height:100vh;padding:0 20px 20px;
 }
-a{color:var(--purple)}
+a{color:var(--purple);text-decoration:none}
+
+/* nav bar */
+.nav-bar{
+  display:flex;align-items:center;gap:0;
+  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);
+}
+.nav-link{
+  padding:8px 20px;font-size:.8rem;color:var(--text2);
+  text-decoration:none;border-radius:6px 6px 0 0;
+  border:1px solid transparent;border-bottom:none;
+  transition:all .15s;font-family:inherit;
+  position:relative;top:1px;
+}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{
+  color:var(--green);background:var(--surface);
+  border-color:var(--border);
+}
 
 /* header */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -64,7 +81,7 @@ a{color:var(--purple)}
 .spacer{flex:1}
 
 /* stat cards */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
 .stat-card{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
   padding:16px 20px;
@@ -75,15 +92,6 @@ a{color:var(--purple)}
 .stat-card .value.yellow{color:var(--yellow)}
 .stat-card .value.purple{color:var(--purple)}
 .stat-card .value.blue{color:var(--blue)}
-
-/* charts */
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-.chart-box{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:16px;
-}
-.chart-box h3{font-size:.8rem;color:var(--text2);margin-bottom:12px}
-@media(max-width:900px){.charts{grid-template-columns:1fr}}
 
 /* table */
 .table-wrap{
@@ -105,30 +113,9 @@ tr:hover{background:#ffffff06}
 }
 .tag.call{background:#818cf822;color:var(--purple)}
 .tag.put{background:#60a5fa22;color:var(--blue)}
-.tag.low{background:#4ade8022;color:var(--green)}
-.tag.mid{background:#fbbf2422;color:var(--yellow)}
-.tag.high{background:#f8717122;color:var(--red)}
-.tag.liq-high{background:#4ade8022;color:var(--green)}
-.tag.liq-mid{background:#fbbf2422;color:var(--yellow)}
-.tag.liq-low{background:#f8717122;color:var(--red)}
-.tag.liq-none{background:#64748b22;color:#64748b}
-.profit{font-weight:600}
-
-/* collapsible */
-.collapsible{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  margin-bottom:24px;
-}
-.collapsible summary{
-  padding:14px 20px;cursor:pointer;font-size:.8rem;color:var(--text2);
-  list-style:none;display:flex;align-items:center;gap:8px;
-}
-.collapsible summary::before{content:'▸';transition:transform .2s}
-.collapsible[open] summary::before{transform:rotate(90deg)}
-.collapsible .inner{padding:0 20px 16px}
-.unmatched-table{width:100%;font-size:.75rem;border-collapse:collapse}
-.unmatched-table th,.unmatched-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.unmatched-table th{color:var(--text2);font-weight:500}
+.tag.otm{background:#4ade8022;color:var(--green)}
+.tag.itm{background:#f8717122;color:var(--red)}
+.tag.atm{background:#fbbf2422;color:var(--yellow)}
 
 .note{font-size:.7rem;color:var(--text2);text-align:center;padding:20px}
 
@@ -196,36 +183,18 @@ tr:hover{background:#ffffff06}
 .modal .btn-cancel:hover{background:#3a3d4a}
 .modal .btn-submit{background:var(--green);color:var(--bg);font-weight:600}
 .modal .btn-submit:hover{opacity:.85}
-
-/* nav bar */
-.nav-bar{
-  display:flex;align-items:center;gap:0;
-  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);
-}
-.nav-link{
-  padding:8px 20px;font-size:.8rem;color:var(--text2);
-  text-decoration:none;border-radius:6px 6px 0 0;
-  border:1px solid transparent;border-bottom:none;
-  transition:all .15s;font-family:inherit;
-  position:relative;top:1px;
-}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{
-  color:var(--green);background:var(--surface);
-  border-color:var(--border);
-}
 </style>
 </head>
 <body>
 
 <!-- Navigation -->
 <nav class="nav-bar">
-  <a class="nav-link active" href="/">双币对比</a>
-  <a class="nav-link" href="/options">期权行情</a>
+  <a class="nav-link" href="/">双币对比</a>
+  <a class="nav-link active" href="/options">期权行情</a>
 </nav>
 
 <div class="header">
-  <h1>币安双币理财 vs 期权卖出</h1>
+  <h1>期权行情</h1>
   <div class="spot">
     <span id="coinLabel">ETH</span>/USDT 现货: <b id="spotPrice">—</b>
     &nbsp;·&nbsp; <span id="updateTime">—</span>
@@ -256,6 +225,13 @@ tr:hover{background:#ffffff06}
     <button class="pill" data-days="7">≤7天</button>
     <button class="pill" data-days="14">≤14天</button>
     <button class="pill" data-days="30">≤30天</button>
+    <button class="pill" data-days="90">≤90天</button>
+  </div>
+  <label>价值状态</label>
+  <div class="pill-group" id="moneyGroup">
+    <button class="pill active" data-money="ALL">全部</button>
+    <button class="pill" data-money="OTM">虚值OTM</button>
+    <button class="pill" data-money="ITM">实值ITM</button>
   </div>
   <div class="spacer"></div>
   <button class="btn" id="btnRefresh">⟳ 刷新</button>
@@ -264,23 +240,11 @@ tr:hover{background:#ffffff06}
 
 <!-- Stats -->
 <div class="stats">
-  <div class="stat-card"><div class="label">平均抽成</div><div class="value yellow" id="statAvgSpread">—</div></div>
-  <div class="stat-card"><div class="label">平均多赚 APR</div><div class="value green" id="statAvgDiff">—</div></div>
-  <div class="stat-card"><div class="label">10万U最大多赚</div><div class="value green" id="statMaxExtra">—</div></div>
-  <div class="stat-card"><div class="label">匹配产品数</div><div class="value purple" id="statCount">—</div></div>
-  <div class="stat-card"><div class="label">现货价格</div><div class="value blue" id="statSpot">—</div></div>
-</div>
-
-<!-- Charts -->
-<div class="charts">
-  <div class="chart-box">
-    <h3>双币APR vs 期权APR 对比</h3>
-    <canvas id="barChart"></canvas>
-  </div>
-  <div class="chart-box">
-    <h3>到期天数 vs 抽成比例</h3>
-    <canvas id="scatterChart"></canvas>
-  </div>
+  <div class="stat-card"><div class="label">合约总数</div><div class="value purple" id="statTotal">—</div></div>
+  <div class="stat-card"><div class="label">CALL 数</div><div class="value purple" id="statCall">—</div></div>
+  <div class="stat-card"><div class="label">PUT 数</div><div class="value blue" id="statPut">—</div></div>
+  <div class="stat-card"><div class="label">最近到期</div><div class="value yellow" id="statNearest">—</div></div>
+  <div class="stat-card"><div class="label">现货价格</div><div class="value green" id="statSpot">—</div></div>
 </div>
 
 <!-- Data Table -->
@@ -290,17 +254,14 @@ tr:hover{background:#ffffff06}
       <tr>
         <th data-key="type">类型 <span class="arrow"></span></th>
         <th data-key="strike">行权价 <span class="arrow"></span></th>
-        <th data-key="expiry">到期日 <span class="arrow"></span></th>
-        <th data-key="days">天数 <span class="arrow"></span></th>
-        <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
-        <th data-key="optionAPRNet">期权APR(净) <span class="arrow"></span></th>
-        <th data-key="diffAPR">差值APR <span class="arrow"></span></th>
-        <th data-key="dualProfit">双币利润 <span class="arrow"></span></th>
-        <th data-key="optionProfit">期权利润 <span class="arrow"></span></th>
-        <th data-key="extraProfit">多赚 <span class="arrow"></span></th>
-        <th data-key="optionBid">Bid价 <span class="arrow"></span></th>
-        <th data-key="bidNotional">Bid深度 <span class="arrow"></span></th>
-        <th data-key="spreadPct">抽成% <span class="arrow"></span></th>
+        <th data-key="expiryStr">到期日 <span class="arrow"></span></th>
+        <th data-key="daysLeft">天数 <span class="arrow"></span></th>
+        <th data-key="moneyness">距离% <span class="arrow"></span></th>
+        <th data-key="bid">Bid <span class="arrow"></span></th>
+        <th data-key="ask">Ask <span class="arrow"></span></th>
+        <th data-key="lastPrice">最新价 <span class="arrow"></span></th>
+        <th data-key="volume">24h量 <span class="arrow"></span></th>
+        <th data-key="aprNet">卖出APR <span class="arrow"></span></th>
         <th>操作</th>
       </tr>
     </thead>
@@ -310,9 +271,9 @@ tr:hover{background:#ffffff06}
 
 <!-- Position Panel -->
 <div class="pos-section" id="posSection">
-  <h2>📊 我的持仓 <span class="pos-count" id="posCount">0</span></h2>
+  <h2>我的持仓 <span class="pos-count" id="posCount">0</span></h2>
   <div id="posContent">
-    <div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>
+    <div class="pos-empty">暂无持仓，可在上方表格中点击「建仓」添加</div>
   </div>
 </div>
 
@@ -343,22 +304,9 @@ tr:hover{background:#ffffff06}
   </div>
 </div>
 
-<!-- Unmatched -->
-<details class="collapsible" id="unmatchedSection" style="display:none">
-  <summary>未匹配的双币理财产品 (<span id="unmatchedCount">0</span>)</summary>
-  <div class="inner">
-    <table class="unmatched-table">
-      <thead>
-        <tr><th>类型</th><th>投入</th><th>行权价</th><th>到期日</th><th>天数</th><th>双币APR</th><th>期权符号</th><th>原因</th></tr>
-      </thead>
-      <tbody id="unmatchedBody"></tbody>
-    </table>
-  </div>
-</details>
-
 <div class="note">
-  * 期权交易手续费已按 0.024%（名义价值）计入；行权费 0.015% 仅实值到期时收取，未计入<br>
-  * 数据来源: 币安双币理财 API + 币安欧式期权 API
+  * 期权交易手续费已按 0.024%（名义价值）计入 APR 计算<br>
+  * 数据来源: 币安欧式期权 API (eapi/v1/ticker)
 </div>
 
 <script>
@@ -366,27 +314,15 @@ tr:hover{background:#ffffff06}
 let currentCoin = 'ETH';
 let filterType = 'ALL';
 let filterDays = 0;
-let sortKey = 'spreadPct';
+let filterMoney = 'ALL';
+let sortKey = 'aprNet';
 let sortAsc = false;
 let autoRefresh = false;
 let autoTimer = null;
-let rawData = null;
-let allTickers = {};  // symbol -> askPrice 映射
+let spotPrice = 0;
+let parsedOptions = [];
+let allTickers = {};
 
-// ── Chart instances ─────────────────────────────────────────────────────────
-let barChart = null;
-let scatterChart = null;
-
-const chartDefaults = {
-  color: '#94a3b8',
-  borderColor: '#2a2d3a',
-  font: { family: "'JetBrains Mono', monospace" },
-};
-Chart.defaults.color = chartDefaults.color;
-Chart.defaults.borderColor = chartDefaults.borderColor;
-Chart.defaults.font.family = chartDefaults.font.family;
-
-// ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
@@ -424,6 +360,16 @@ $('#termGroup').addEventListener('click', (e) => {
   render();
 });
 
+// ── Money pills ─────────────────────────────────────────────────────────────
+$('#moneyGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#moneyGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterMoney = btn.dataset.money;
+  render();
+});
+
 // ── Refresh ─────────────────────────────────────────────────────────────────
 $('#btnRefresh').addEventListener('click', () => loadData());
 
@@ -447,7 +393,7 @@ $$('#dataTable th').forEach(th => {
       sortAsc = !sortAsc;
     } else {
       sortKey = key;
-      sortAsc = true;
+      sortAsc = key === 'expiryStr' || key === 'type';
     }
     render();
   });
@@ -458,36 +404,86 @@ async function checkHealth() {
   try {
     const res = await fetch('/api/health');
     const j = await res.json();
-    if (j.apiKeyConfigured) {
-      setStatus('ok', 'API Key 已配置，服务正常');
-    } else {
-      setStatus('err', '未配置 API Key，双币理财数据将无法获取');
-    }
+    setStatus('ok', '服务正常');
   } catch (e) {
     setStatus('err', '无法连接后端服务: ' + e.message);
   }
 }
 
 async function loadData() {
-  setStatus('loading', `正在加载 ${currentCoin} 数据…`);
+  setStatus('loading', `正在加载 ${currentCoin} 期权数据…`);
   try {
-    const [compareRes, tickerRes] = await Promise.all([
-      fetch(`/api/compare?coin=${currentCoin}`),
-      fetch(`/api/options-tickers?coin=${currentCoin}`)
+    const [tickerRes, spotRes] = await Promise.all([
+      fetch(`/api/options-tickers?coin=${currentCoin}`),
+      fetch(`/api/spot-price?coin=${currentCoin}`)
     ]);
-    const j = await compareRes.json();
-    if (!j.ok) throw new Error(j.error || 'Unknown error');
-    rawData = j.data;
-    // 解析 tickers 用于持仓面板（tickers 是 {symbol: tickerObj} 的字典）
-    try {
-      const tj = await tickerRes.json();
-      if (tj.ok && tj.tickers) {
-        Object.assign(allTickers, tj.tickers);
+
+    const tj = await tickerRes.json();
+    if (!tj.ok) throw new Error(tj.error || 'Ticker error');
+
+    const sj = await spotRes.json();
+    if (!sj.ok) throw new Error(sj.error || 'Spot error');
+
+    spotPrice = sj.price;
+    const tickers = tj.tickers;
+    Object.assign(allTickers, tickers);
+
+    // 解析所有期权
+    parsedOptions = [];
+    for (const [symbol, t] of Object.entries(tickers)) {
+      const parsed = parseSymbol(symbol);
+      if (!parsed) continue;
+
+      const bid = parseFloat(t.bidPrice) || 0;
+      const ask = parseFloat(t.askPrice) || 0;
+      const lastPrice = parseFloat(t.lastPrice) || 0;
+      const volume = parseFloat(t.volume) || 0;
+
+      // 距离%（moneyness）
+      let moneyness = 0;
+      if (parsed.type === 'CALL') {
+        moneyness = ((parsed.strike - spotPrice) / spotPrice) * 100;
+      } else {
+        moneyness = ((spotPrice - parsed.strike) / spotPrice) * 100;
       }
-    } catch(_) {}
-    // 如果持仓中有非当前币种的合约，也获取其 tickers
+      // 正 = OTM，负 = ITM
+      const isOTM = moneyness > 0;
+
+      // APR 计算
+      const fee = spotPrice * 0.00024;
+      const netBid = bid - fee;
+      let aprNet = 0;
+      if (bid > 0 && parsed.daysLeft > 0) {
+        if (parsed.type === 'PUT') {
+          aprNet = (netBid / parsed.strike) * (365 / parsed.daysLeft);
+        } else {
+          aprNet = (netBid / spotPrice) * (365 / parsed.daysLeft);
+        }
+      }
+
+      parsedOptions.push({
+        symbol,
+        type: parsed.type,
+        strike: parsed.strike,
+        expiryStr: parsed.expiryStr,
+        daysLeft: parsed.daysLeft,
+        moneyness: Math.round(moneyness * 100) / 100,
+        isOTM,
+        bid,
+        ask,
+        lastPrice,
+        volume,
+        aprNet: Math.round(aprNet * 10000) / 10000,
+      });
+    }
+
+    // 加载持仓中缺失的币种 tickers
     await loadMissingTickers();
-    setStatus('ok', `${currentCoin} 数据加载完成 · ${rawData.results.length} 个匹配产品`);
+
+    const now = new Date();
+    const timeStr = now.toISOString().replace('T', ' ').replace(/\.\d+Z/, ' UTC');
+    setStatus('ok', `${currentCoin} 期权数据加载完成 · ${parsedOptions.length} 个合约`);
+    $('#updateTime').textContent = timeStr;
     render();
     renderPositions();
   } catch (e) {
@@ -495,19 +491,41 @@ async function loadData() {
   }
 }
 
+// ── Symbol 解析 ─────────────────────────────────────────────────────────────
+function parseSymbol(symbol) {
+  // 格式: ETH-260327-2000-P 或 BTC-260328-90000-C
+  const parts = symbol.split('-');
+  if (parts.length !== 4) return null;
+  const dateStr = parts[1]; // YYMMDD
+  if (dateStr.length !== 6) return null;
+  const yy = parseInt(dateStr.substring(0, 2));
+  const mm = parseInt(dateStr.substring(2, 4));
+  const dd = parseInt(dateStr.substring(4, 6));
+  const expiryDate = new Date(Date.UTC(2000 + yy, mm - 1, dd, 8, 0, 0)); // 08:00 UTC 到期
+  const now = new Date();
+  const daysLeft = Math.max(0.01, (expiryDate - now) / 86400000);
+
+  return {
+    coin: parts[0],
+    type: parts[3] === 'C' ? 'CALL' : 'PUT',
+    strike: parseFloat(parts[2]),
+    expiryStr: `${2000 + yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`,
+    daysLeft: Math.round(daysLeft * 100) / 100,
+  };
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 function render() {
-  if (!rawData) return;
-
   // header
-  $('#coinLabel').textContent = rawData.coin;
-  $('#spotPrice').textContent = '$' + Number(rawData.spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  $('#updateTime').textContent = rawData.timestamp.replace('T', ' ').replace('Z', ' UTC');
+  $('#coinLabel').textContent = currentCoin;
+  $('#spotPrice').textContent = '$' + Number(spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // filter
-  let rows = rawData.results.slice();
+  let rows = parsedOptions.slice();
   if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
-  if (filterDays > 0) rows = rows.filter(r => r.days <= filterDays);
+  if (filterDays > 0) rows = rows.filter(r => r.daysLeft <= filterDays);
+  if (filterMoney === 'OTM') rows = rows.filter(r => r.isOTM);
+  else if (filterMoney === 'ITM') rows = rows.filter(r => !r.isOTM);
 
   // sort
   rows.sort((a, b) => {
@@ -519,16 +537,20 @@ function render() {
   });
 
   // stats (from filtered)
-  const spreads = rows.map(r => r.spreadPct);
-  const diffs = rows.map(r => r.diffAPR);
-  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const calls = rows.filter(r => r.type === 'CALL');
+  const puts = rows.filter(r => r.type === 'PUT');
+  $('#statTotal').textContent = rows.length;
+  $('#statCall').textContent = calls.length;
+  $('#statPut').textContent = puts.length;
+  $('#statSpot').textContent = '$' + Number(spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const extras = rows.map(r => r.extraProfit);
-  $('#statAvgSpread').textContent = spreads.length ? avg(spreads).toFixed(1) + '%' : '—';
-  $('#statAvgDiff').textContent = diffs.length ? (avg(diffs) * 100).toFixed(2) + '%' : '—';
-  $('#statMaxExtra').textContent = extras.length ? '$' + Math.max(...extras).toFixed(0) : '—';
-  $('#statCount').textContent = rows.length;
-  $('#statSpot').textContent = '$' + Number(rawData.spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // 最近到期
+  if (rows.length > 0) {
+    const nearest = rows.reduce((a, b) => a.daysLeft < b.daysLeft ? a : b);
+    $('#statNearest').textContent = daysLabel(nearest.daysLeft);
+  } else {
+    $('#statNearest').textContent = '—';
+  }
 
   // sort arrows
   $$('#dataTable th').forEach(th => {
@@ -544,181 +566,35 @@ function render() {
   // table
   const tbody = $('#tableBody');
   tbody.innerHTML = rows.map(r => `<tr>
-    <td><span class="tag ${r.type.toLowerCase()}">${r.typeLabel}</span></td>
+    <td><span class="tag ${r.type === 'CALL' ? 'call' : 'put'}">${r.type}</span></td>
     <td>${fmtStrike(r.strike)}</td>
-    <td>${r.expiry}</td>
-    <td>${r.daysLabel}</td>
-    <td>${(r.dualAPR * 100).toFixed(2)}%</td>
-    <td style="color:var(--green)">${(r.optionAPRNet * 100).toFixed(2)}%</td>
-    <td style="color:var(--${r.diffAPR >= 0 ? 'green' : 'red'})">${(r.diffAPR * 100).toFixed(2)}%</td>
-    <td class="profit" style="color:var(--purple)">$${r.dualProfit.toFixed(0)}</td>
-    <td class="profit" style="color:var(--green)">$${r.optionProfit.toFixed(0)}</td>
-    <td class="profit" style="color:var(--${r.extraProfit >= 0 ? 'yellow' : 'red'})">$${r.extraProfit.toFixed(0)}</td>
-    <td>${r.optionBid.toFixed(2)}</td>
-    <td><span class="tag ${liqClass(r.bidNotional)}">${fmtNotional(r.bidNotional)}</span></td>
-    <td><span class="tag ${spreadClass(r.spreadPct)}">${r.spreadPct.toFixed(1)}%</span></td>
-    <td><button class="btn-open" onclick="openPositionModal('${r.optionSymbol || buildSymbol(r)}', ${r.optionBid})">建仓</button></td>
+    <td>${r.expiryStr}</td>
+    <td>${daysLabel(r.daysLeft)}</td>
+    <td><span class="tag ${r.isOTM ? 'otm' : 'itm'}">${r.isOTM ? 'OTM' : 'ITM'} ${Math.abs(r.moneyness).toFixed(1)}%</span></td>
+    <td>${r.bid > 0 ? r.bid.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
+    <td>${r.ask > 0 ? r.ask.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
+    <td>${r.lastPrice > 0 ? r.lastPrice.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
+    <td>${r.volume > 0 ? fmtVolume(r.volume) : '<span style="color:var(--text2)">—</span>'}</td>
+    <td style="color:${r.aprNet > 0 ? 'var(--green)' : 'var(--text2)'}">${r.aprNet > 0 ? (r.aprNet * 100).toFixed(2) + '%' : '—'}</td>
+    <td><button class="btn-open" onclick="openPositionModal('${r.symbol}', ${r.bid})">建仓</button></td>
   </tr>`).join('');
-
-  // unmatched
-  const um = rawData.unmatched || [];
-  const umSec = $('#unmatchedSection');
-  if (um.length > 0) {
-    umSec.style.display = '';
-    $('#unmatchedCount').textContent = um.length;
-    $('#unmatchedBody').innerHTML = um.map(u => `<tr>
-      <td><span class="tag ${u.type.toLowerCase()}">${u.typeLabel}</span></td>
-      <td>${u.investCoin}</td>
-      <td>${fmtStrike(u.strike)}</td>
-      <td>${u.expiry}</td>
-      <td>${u.daysLabel}</td>
-      <td>${(u.dualAPR * 100).toFixed(2)}%</td>
-      <td style="font-size:.7rem;color:var(--text2)">${u.optionSymbol}</td>
-      <td style="color:var(--red)">${u.reason}</td>
-    </tr>`).join('');
-  } else {
-    umSec.style.display = 'none';
-  }
-
-  // charts
-  renderBarChart(rows);
-  renderScatterChart(rows);
 }
 
 function fmtStrike(v) {
-  return Number(v) === Math.floor(Number(v)) ? Number(v).toLocaleString() : Number(v).toLocaleString(undefined, {maximumFractionDigits: 2});
+  return Number(v) === Math.floor(Number(v))
+    ? Number(v).toLocaleString()
+    : Number(v).toLocaleString(undefined, {maximumFractionDigits: 2});
 }
 
-function spreadClass(pct) {
-  if (pct < 15) return 'low';
-  if (pct <= 20) return 'mid';
-  return 'high';
+function daysLabel(days) {
+  if (days < 1) return Math.max(1, Math.round(days * 24)) + '小时';
+  return Math.ceil(days) + '天';
 }
 
-function liqClass(notional) {
-  if (notional >= 50000) return 'liq-high';
-  if (notional >= 10000) return 'liq-mid';
-  if (notional > 0) return 'liq-low';
-  return 'liq-none';
-}
-
-function fmtNotional(v) {
-  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000) return '$' + (v / 1000).toFixed(1) + 'K';
-  if (v > 0) return '$' + v.toFixed(0);
-  return '—';
-}
-
-// ── Charts ──────────────────────────────────────────────────────────────────
-function renderBarChart(rows) {
-  const ctx = $('#barChart');
-  if (barChart) barChart.destroy();
-
-  // pick top 20 by spread to keep chart readable
-  const display = rows.slice().sort((a, b) => b.spreadPct - a.spreadPct).slice(0, 20);
-  const labels = display.map(r => `${r.type[0]}|${fmtStrike(r.strike)}|${r.daysLabel}`);
-
-  barChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: '双币APR',
-          data: display.map(r => +(r.dualAPR * 100).toFixed(2)),
-          backgroundColor: '#818cf8aa',
-          borderColor: '#818cf8',
-          borderWidth: 1,
-        },
-        {
-          label: '期权APR(净)',
-          data: display.map(r => +(r.optionAPRNet * 100).toFixed(2)),
-          backgroundColor: '#4ade80aa',
-          borderColor: '#4ade80',
-          borderWidth: 1,
-        },
-        {
-          label: '手续费APR',
-          data: display.map(r => +(r.feeAPR * 100).toFixed(2)),
-          backgroundColor: '#f8717166',
-          borderColor: '#f87171',
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%',
-          },
-        },
-      },
-      scales: {
-        y: {
-          title: { display: true, text: 'APR (%)' },
-          grid: { color: '#2a2d3a' },
-        },
-        x: {
-          ticks: { maxRotation: 60, font: { size: 10 } },
-          grid: { display: false },
-        },
-      },
-    },
-  });
-}
-
-function renderScatterChart(rows) {
-  const ctx = $('#scatterChart');
-  if (scatterChart) scatterChart.destroy();
-
-  const calls = rows.filter(r => r.type === 'CALL').map(r => ({ x: r.days, y: r.spreadPct }));
-  const puts = rows.filter(r => r.type === 'PUT').map(r => ({ x: r.days, y: r.spreadPct }));
-
-  scatterChart = new Chart(ctx, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: 'CALL (高卖)',
-          data: calls,
-          backgroundColor: '#818cf8cc',
-          borderColor: '#818cf8',
-          pointRadius: 5,
-        },
-        {
-          label: 'PUT (低买)',
-          data: puts,
-          backgroundColor: '#60a5facc',
-          borderColor: '#60a5fa',
-          pointRadius: 5,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.parsed.x.toFixed(1)}D → ${ctx.parsed.y.toFixed(1)}%`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          title: { display: true, text: '到期天数' },
-          grid: { color: '#2a2d3a' },
-        },
-        y: {
-          title: { display: true, text: '抽成 (%)' },
-          grid: { color: '#2a2d3a' },
-        },
-      },
-    },
-  });
+function fmtVolume(v) {
+  if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
+  if (v >= 1) return v.toFixed(1);
+  return v.toFixed(3);
 }
 
 // ── Status ──────────────────────────────────────────────────────────────────
@@ -728,7 +604,7 @@ function setStatus(type, msg) {
   $('#statusText').textContent = msg;
 }
 
-// ── Position Management ─────────────────────────────────────────────────────
+// ── Position Management (shared with index.html via localStorage) ────────────
 
 function getPositions() {
   try { return JSON.parse(localStorage.getItem('positions') || '[]'); }
@@ -739,11 +615,10 @@ function savePositions(positions) {
   localStorage.setItem('positions', JSON.stringify(positions));
 }
 
-// 从合约符号解析到期日，如 ETH-260327-2000-P → 2026-03-27
 function parseExpiryFromSymbol(symbol) {
   const parts = symbol.split('-');
   if (parts.length < 3) return null;
-  const dateStr = parts[1]; // YYMMDD
+  const dateStr = parts[1];
   if (dateStr.length !== 6) return null;
   const yy = dateStr.substring(0, 2);
   const mm = dateStr.substring(2, 4);
@@ -751,17 +626,10 @@ function parseExpiryFromSymbol(symbol) {
   return new Date(2000 + parseInt(yy), parseInt(mm) - 1, parseInt(dd));
 }
 
-// 从合约符号解析币种
 function parseCoinFromSymbol(symbol) {
   return symbol.split('-')[0] || '';
 }
 
-// 构建合约符号（从对比表格行数据）
-function buildSymbol(r) {
-  return r.optionSymbol || `${currentCoin}-${r.expiry.replace(/-/g, '').substring(2)}-${r.strike}-${r.type === 'CALL' ? 'C' : 'P'}`;
-}
-
-// 加载持仓中缺失的币种 tickers
 async function loadMissingTickers() {
   const positions = getPositions();
   const neededCoins = new Set();
@@ -778,7 +646,6 @@ async function loadMissingTickers() {
   }
 }
 
-// 打开建仓弹窗
 function openPositionModal(symbol, bidPrice) {
   $('#posSymbol').value = symbol || '';
   $('#posSellPrice').value = bidPrice ? Number(bidPrice).toFixed(2) : '';
@@ -793,7 +660,6 @@ function closeModal() {
   $('#posModal').classList.add('hidden');
 }
 
-// 保存持仓
 function savePosition() {
   const symbol = $('#posSymbol').value.trim().toUpperCase();
   const sellPrice = parseFloat($('#posSellPrice').value);
@@ -818,7 +684,6 @@ function savePosition() {
   renderPositions();
 }
 
-// 删除持仓
 function deletePosition(id) {
   if (!confirm('确定删除此持仓记录？')) return;
   const positions = getPositions().filter(p => p.id !== id);
@@ -826,7 +691,6 @@ function deletePosition(id) {
   renderPositions();
 }
 
-// 渲染持仓面板
 function renderPositions() {
   const positions = getPositions();
   const countEl = $('#posCount');
@@ -834,7 +698,7 @@ function renderPositions() {
   countEl.textContent = positions.length;
 
   if (positions.length === 0) {
-    contentEl.innerHTML = '<div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>';
+    contentEl.innerHTML = '<div class="pos-empty">暂无持仓，可在上方表格中点击「建仓」添加</div>';
     return;
   }
 
@@ -845,41 +709,35 @@ function renderPositions() {
     const expiry = parseExpiryFromSymbol(p.symbol);
     const openDate = new Date(p.openDate);
 
-    // 剩余天数
     const daysLeft = expiry ? Math.max(0, Math.ceil((expiry - now) / 86400000)) : null;
-    // 已持有天数
     const daysHeld = Math.max(1, Math.ceil((now - openDate) / 86400000));
 
-    // 计算
     let earnedPct = null, earnedUsd = null, holdApr = null, closeApr = null, signal = '';
 
     if (askPrice !== null) {
       earnedPct = (p.sellPrice - askPrice) / p.sellPrice * 100;
       earnedUsd = (p.sellPrice - askPrice) * p.qty;
 
-      // 持有年化：继续持有到期，剩余可赚 = askPrice，年化 = (askPrice/sellPrice) × (365/剩余天数)
       if (daysLeft !== null && daysLeft > 0) {
         holdApr = (askPrice / p.sellPrice) * (365 / daysLeft) * 100;
       }
 
-      // 平仓年化：已赚利润 / 卖出价 × (365 / 已持有天数)
       if (daysHeld > 0) {
         closeApr = (earnedPct / 100) * (365 / daysHeld) * 100;
       }
 
-      // 信号判断
       if (earnedPct < 0) {
-        signal = '<span class="signal watch">⚪ 观察</span>';
+        signal = '<span class="signal watch">观察</span>';
       } else if (earnedPct >= 80) {
-        signal = '<span class="signal strong-close">🔴 强烈建议平仓</span>';
+        signal = '<span class="signal strong-close">强烈建议平仓</span>';
       } else if (earnedPct >= 50 && daysLeft !== null && daysLeft >= 10) {
-        signal = '<span class="signal suggest-close">🟡 建议平仓再开</span>';
+        signal = '<span class="signal suggest-close">建议平仓再开</span>';
       } else if (closeApr !== null && holdApr !== null && closeApr > holdApr && earnedPct > 0) {
-        signal = '<span class="signal suggest-close">🟡 平仓更优</span>';
+        signal = '<span class="signal suggest-close">平仓更优</span>';
       } else if (daysLeft !== null && daysLeft <= 2 && earnedPct > 0) {
-        signal = '<span class="signal hold">🟢 持有到期</span>';
+        signal = '<span class="signal hold">持有到期</span>';
       } else {
-        signal = '<span class="signal watch">⚪ 观察</span>';
+        signal = '<span class="signal watch">观察</span>';
       }
     }
 
