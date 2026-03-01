@@ -190,8 +190,8 @@ tr:hover{background:#ffffff06}
 <!-- Navigation -->
 <nav class="nav-bar">
   <a class="nav-link" href="/">双币对比</a>
-  <a class="nav-link active" href="/options">期权行情</a>
-  <a class="nav-link" href="/deribit">Deribit对比</a>
+  <a class="nav-link active" href="/options">币安期权行情</a>
+  <a class="nav-link" href="/deribit">Deribit期权行情</a>
 </nav>
 
 <div class="header">
@@ -265,6 +265,7 @@ tr:hover{background:#ffffff06}
         <th data-key="volume">24h量 <span class="arrow"></span></th>
         <th data-key="breakeven">盈亏平衡 <span class="arrow"></span></th>
         <th data-key="aprNet">卖出APR <span class="arrow"></span></th>
+        <th data-key="profit">10万U利润 <span class="arrow"></span></th>
         <th>操作</th>
       </tr>
     </thead>
@@ -580,6 +581,7 @@ function render() {
     <td>${r.volume ? r.volume.toFixed(1) : '—'}</td>
     <td style="color:${beColor}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${beSign}${r.breakevenPct.toFixed(1)}%)</span></td>
     <td style="color:var(--green)">${r.aprNet > 0 ? (r.aprNet * 100).toFixed(1) + '%' : '—'}</td>
+    <td style="color:var(--yellow)">${r.aprNet > 0 ? '$' + (100000 * r.aprNet * r.daysLeft / 365).toFixed(0) : '—'}</td>
     <td>${r.bid > 0 ? `<button class="btn-open" onclick="openPositionModal('${r.symbol}', ${r.bid})">建仓</button>` : ''}</td>
   </tr>`;
   }).join('');
