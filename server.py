@@ -172,127 +172,114 @@ def fetch_deribit_tickers(coin: str) -> dict:
     return result
 
 
-def _settle_ts_to_deribit_date(ts_ms) -> str:
-    """Convert millisecond timestamp to Deribit date format: 27MAR26."""
-    dt = datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc)
-    day = dt.strftime("%d")
-    mon = DERIBIT_MONTH_MAP[dt.month]
-    yy = dt.strftime("%y")
-    return f"{day}{mon}{yy}"
+DERIBIT_MONTH_REVERSE = {v: k for k, v in DERIBIT_MONTH_MAP.items()}
+
+
+def _parse_deribit_instrument(name: str):
+    """Parse 'BTC-27MAR26-60000-C' → dict or None."""
+    parts = name.split("-")
+    if len(parts) != 4:
+        return None
+    coin = parts[0]
+    date_str = parts[1]
+    type_char = parts[3]
+    if type_char not in ("C", "P"):
+        return None
+    try:
+        strike = float(parts[2])
+    except ValueError:
+        return None
+
+    # 解析日期: 27MAR26 → 2026-03-27
+    mon_str = ""
+    for m in DERIBIT_MONTH_REVERSE:
+        if m in date_str:
+            mon_str = m
+            break
+    if not mon_str:
+        return None
+    idx = date_str.index(mon_str)
+    dd = int(date_str[:idx])
+    yy = int(date_str[idx + 3:])
+    mon = DERIBIT_MONTH_REVERSE[mon_str]
+    expiry_dt = datetime(2000 + yy, mon, dd, 8, 0, 0, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    days = max((expiry_dt - now).total_seconds() / 86400, 0.01)
+
+    return {
+        "coin": coin,
+        "strike": strike,
+        "option_type": "CALL" if type_char == "C" else "PUT",
+        "expiry_date": f"{2000 + yy}-{mon:02d}-{dd:02d}",
+        "days": round(days, 2),
+    }
 
 
 def compare_deribit(coin: str) -> dict:
-    """Compare Binance dual investment vs Deribit option selling."""
-    invest_amount = 100000
-
+    """Fetch Deribit CALL option data for coin."""
     spot = fetch_spot_price(coin)
-    products = fetch_dual_products(coin)
-    deribit_tickers = fetch_deribit_tickers(coin)
     deribit_index = fetch_deribit_index(coin)
+    deribit_tickers = fetch_deribit_tickers(coin)
 
     results = []
-    unmatched = []
 
-    for p in products:
-        opt_type = p["_optionType"]
-        strike = float(p["strikePrice"])
-        settle_ts = int(p["settleDate"])
-        dual_apr = float(p["apr"])
-
-        strike_str = _format_strike(strike)
-        cp = "C" if opt_type == "CALL" else "P"
-        deribit_date = _settle_ts_to_deribit_date(settle_ts)
-        deribit_symbol = f"{coin}-{deribit_date}-{strike_str}-{cp}"
-
-        days = _days_until(settle_ts)
-        expiry = _expiry_date(settle_ts)
-
-        ticker = deribit_tickers.get(deribit_symbol)
-        bid_coin = 0.0
-        if ticker:
-            bid_coin = float(ticker.get("bid_price") or 0)
-
-        # 距离%
-        if opt_type == "CALL":
-            distance_pct = (strike - spot) / spot * 100 if spot > 0 else 0
-        else:
-            distance_pct = (spot - strike) / spot * 100 if spot > 0 else 0
-
-        if bid_coin <= 0:
-            unmatched.append({
-                "type": opt_type,
-                "strike": strike,
-                "expiry": expiry,
-                "days": days,
-                "daysLabel": _days_label(days),
-                "distancePct": round(distance_pct, 2),
-                "dualAPR": dual_apr,
-                "deribitSymbol": deribit_symbol,
-                "reason": "no bid" if ticker else "no contract",
-            })
+    for name, ticker in deribit_tickers.items():
+        parsed = _parse_deribit_instrument(name)
+        if not parsed or parsed["coin"] != coin or parsed["option_type"] != "CALL":
             continue
 
+        bid_coin = float(ticker.get("bid_price") or 0)
+        ask_coin = float(ticker.get("ask_price") or 0)
+        volume = float(ticker.get("volume") or 0)
+
+        if bid_coin <= 0:
+            continue
+
+        strike = parsed["strike"]
+        days = parsed["days"]
         bid_usd = bid_coin * deribit_index
+        ask_usd = ask_coin * deribit_index if ask_coin > 0 else 0
 
         # Deribit Taker 手续费: min(0.03% × 标的, 12.5% × 权利金)
         fee = min(0.0003 * deribit_index, 0.125 * bid_usd)
         net_bid = bid_usd - fee
 
-        if opt_type == "PUT":
-            deribit_apr_gross = (bid_usd / strike) * (365 / days)
-            deribit_apr_net = (net_bid / strike) * (365 / days)
-        else:
-            deribit_apr_gross = (bid_usd / deribit_index) * (365 / days)
-            deribit_apr_net = (net_bid / deribit_index) * (365 / days)
+        # CALL APR
+        apr_gross = (bid_usd / deribit_index) * (365 / days)
+        apr_net = (net_bid / deribit_index) * (365 / days)
 
-        fee_apr = deribit_apr_gross - deribit_apr_net
-        diff_apr = deribit_apr_net - dual_apr
-        spread_pct = (diff_apr / deribit_apr_net * 100) if deribit_apr_net > 0 else 0
-
-        # 盈亏平衡价（基于扣费后的 net_bid）
-        if opt_type == "PUT":
-            breakeven = strike - net_bid
-        else:
-            breakeven = strike + net_bid
+        # 盈亏平衡价（扣费后）
+        breakeven = strike + net_bid
         breakeven_pct = (breakeven - spot) / spot * 100 if spot > 0 else 0
 
-        period = days / 365
-        dual_profit = invest_amount * dual_apr * period
-        deribit_profit = invest_amount * deribit_apr_net * period
-        extra_profit = deribit_profit - dual_profit
+        # 距离%（CALL: 正=虚值OTM）
+        distance_pct = (strike - spot) / spot * 100 if spot > 0 else 0
 
         results.append({
-            "type": opt_type,
+            "deribitSymbol": name,
             "strike": strike,
-            "expiry": expiry,
+            "expiry": parsed["expiry_date"],
             "days": days,
             "daysLabel": _days_label(days),
             "distancePct": round(distance_pct, 2),
-            "dualAPR": round(dual_apr, 6),
-            "dualProfit": round(dual_profit, 2),
-            "deribitSymbol": deribit_symbol,
             "deribitBid": round(bid_coin, 6),
             "deribitBidUSD": round(bid_usd, 4),
-            "deribitAPR": round(deribit_apr_gross, 6),
-            "deribitAPRNet": round(deribit_apr_net, 6),
-            "deribitFeeAPR": round(fee_apr, 6),
-            "deribitProfit": round(deribit_profit, 2),
-            "diffAPR": round(diff_apr, 6),
-            "extraProfit": round(extra_profit, 2),
-            "spreadPct": round(spread_pct, 2),
+            "deribitAsk": round(ask_coin, 6),
+            "deribitAskUSD": round(ask_usd, 4),
+            "volume": round(volume, 2),
+            "deribitAPRNet": round(apr_net, 6),
             "breakeven": round(breakeven, 2),
             "breakevenPct": round(breakeven_pct, 2),
         })
 
-    diffs = [r["diffAPR"] for r in results]
-    spreads = [r["spreadPct"] for r in results]
+    aprs = [r["deribitAPRNet"] for r in results if r["deribitAPRNet"] > 0]
+    nearest = min((r["days"] for r in results), default=0)
 
     stats = {
         "count": len(results),
-        "unmatched": len(unmatched),
-        "avgDiffAPR": round(sum(diffs) / len(diffs), 6) if diffs else 0,
-        "avgSpread": round(sum(spreads) / len(spreads), 2) if spreads else 0,
-        "maxDiffAPR": round(max(diffs), 6) if diffs else 0,
+        "avgAPR": round(sum(aprs) / len(aprs), 6) if aprs else 0,
+        "maxAPR": round(max(aprs), 6) if aprs else 0,
+        "nearest": round(nearest, 2),
     }
 
     return {
@@ -301,7 +288,6 @@ def compare_deribit(coin: str) -> dict:
         "deribitIndex": deribit_index,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
         "results": results,
-        "unmatched": unmatched,
         "stats": stats,
     }
 

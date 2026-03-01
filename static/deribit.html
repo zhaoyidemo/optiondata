@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>币安双币 vs Deribit 期权 — 收益对比</title>
+<title>Deribit CALL 期权 — BTC / ETH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -94,7 +94,6 @@ a{color:var(--purple)}
 .stat-card .value.purple{color:var(--purple)}
 .stat-card .value.blue{color:var(--blue)}
 .stat-card .value.orange{color:var(--orange)}
-.stat-card .value.red{color:var(--red)}
 
 /* table */
 .table-wrap{
@@ -114,27 +113,8 @@ tr:hover{background:#ffffff06}
 .tag{
   display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600;
 }
-.tag.call{background:#818cf822;color:var(--purple)}
-.tag.put{background:#60a5fa22;color:var(--blue)}
 .tag.otm{background:#4ade8022;color:var(--green)}
 .tag.itm{background:#f8717122;color:var(--red)}
-.profit{font-weight:600}
-
-/* collapsible */
-.collapsible{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  margin-bottom:24px;
-}
-.collapsible summary{
-  padding:14px 20px;cursor:pointer;font-size:.8rem;color:var(--text2);
-  list-style:none;display:flex;align-items:center;gap:8px;
-}
-.collapsible summary::before{content:'▸';transition:transform .2s}
-.collapsible[open] summary::before{transform:rotate(90deg)}
-.collapsible .inner{padding:0 20px 16px}
-.unmatched-table{width:100%;font-size:.75rem;border-collapse:collapse}
-.unmatched-table th,.unmatched-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.unmatched-table th{color:var(--text2);font-weight:500}
 
 .note{font-size:.7rem;color:var(--text2);text-align:center;padding:20px}
 
@@ -156,11 +136,6 @@ tr:hover{background:#ffffff06}
 }
 .pos-table td{padding:8px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pos-table tr:hover{background:#ffffff06}
-.signal{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:600}
-.signal.strong-close{background:#f8717133;color:var(--red)}
-.signal.suggest-close{background:#fbbf2433;color:var(--yellow)}
-.signal.hold{background:#4ade8033;color:var(--green)}
-.signal.watch{background:#64748b33;color:#94a3b8}
 .btn-sm{
   padding:3px 10px;border-radius:4px;font-size:.68rem;cursor:pointer;
   border:1px solid var(--border);background:transparent;color:var(--text2);
@@ -188,11 +163,11 @@ tr:hover{background:#ffffff06}
 .modal h3{font-size:.9rem;color:var(--green);margin-bottom:16px}
 .modal .form-row{margin-bottom:12px}
 .modal .form-row label{display:block;font-size:.7rem;color:var(--text2);margin-bottom:4px}
-.modal .form-row input,.modal .form-row select{
+.modal .form-row input{
   width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--border);
   background:var(--bg);color:var(--text);font-family:inherit;font-size:.8rem;
 }
-.modal .form-row input:focus,.modal .form-row select:focus{outline:none;border-color:var(--purple)}
+.modal .form-row input:focus{outline:none;border-color:var(--purple)}
 .modal .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .modal .form-actions button{
   padding:8px 20px;border-radius:6px;font-size:.78rem;cursor:pointer;
@@ -214,7 +189,7 @@ tr:hover{background:#ffffff06}
 </nav>
 
 <div class="header">
-  <h1>币安双币 vs Deribit 期权</h1>
+  <h1>Deribit CALL 期权</h1>
   <div class="spot">
     <span id="coinLabel">ETH</span>/USDT 现货: <b id="spotPrice">—</b>
     &nbsp;·&nbsp; Deribit指数: <b class="deribit-idx" id="deribitIndex">—</b>
@@ -233,12 +208,6 @@ tr:hover{background:#ffffff06}
     <button class="pill active" data-coin="ETH">ETH</button>
     <button class="pill" data-coin="BTC">BTC</button>
   </div>
-  <label>类型</label>
-  <div class="pill-group" id="typeGroup">
-    <button class="pill active" data-type="ALL">全部</button>
-    <button class="pill" data-type="CALL">CALL</button>
-    <button class="pill" data-type="PUT">PUT</button>
-  </div>
   <label>期限</label>
   <div class="pill-group" id="termGroup">
     <button class="pill active" data-min="0" data-max="0">全部</button>
@@ -251,9 +220,9 @@ tr:hover{background:#ffffff06}
   </div>
   <label>排序</label>
   <div class="pill-group" id="sortGroup">
-    <button class="pill active" data-sort="diffAPR">APR差值</button>
-    <button class="pill" data-sort="extraProfit">额外利润</button>
+    <button class="pill active" data-sort="aprNet">APR(净)↓</button>
     <button class="pill" data-sort="days_asc">天数↑</button>
+    <button class="pill" data-sort="distance">距离%↑</button>
   </div>
   <div class="spacer"></div>
   <button class="btn" id="btnRefresh">⟳ 刷新</button>
@@ -262,11 +231,11 @@ tr:hover{background:#ffffff06}
 
 <!-- Stats -->
 <div class="stats">
-  <div class="stat-card"><div class="label">匹配产品数</div><div class="value purple" id="statCount">—</div></div>
-  <div class="stat-card"><div class="label">未匹配数</div><div class="value red" id="statUnmatched">—</div></div>
-  <div class="stat-card"><div class="label">平均APR差值</div><div class="value green" id="statAvgDiff">—</div></div>
-  <div class="stat-card"><div class="label">最大APR差值</div><div class="value orange" id="statMaxDiff">—</div></div>
-  <div class="stat-card"><div class="label">现货价格</div><div class="value blue" id="statSpot">—</div></div>
+  <div class="stat-card"><div class="label">CALL 合约数</div><div class="value purple" id="statCount">—</div></div>
+  <div class="stat-card"><div class="label">最近到期</div><div class="value yellow" id="statNearest">—</div></div>
+  <div class="stat-card"><div class="label">平均卖出APR</div><div class="value green" id="statAvgAPR">—</div></div>
+  <div class="stat-card"><div class="label">最高卖出APR</div><div class="value orange" id="statMaxAPR">—</div></div>
+  <div class="stat-card"><div class="label">Deribit指数</div><div class="value blue" id="statIndex">—</div></div>
 </div>
 
 <!-- Data Table -->
@@ -274,18 +243,16 @@ tr:hover{background:#ffffff06}
   <table id="dataTable">
     <thead>
       <tr>
-        <th data-key="type">类型 <span class="arrow"></span></th>
         <th data-key="strike">行权价 <span class="arrow"></span></th>
         <th data-key="expiry">到期日 <span class="arrow"></span></th>
         <th data-key="days">天数 <span class="arrow"></span></th>
         <th data-key="distancePct">距离% <span class="arrow"></span></th>
-        <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
-        <th data-key="deribitBid">Deribit Bid <span class="arrow"></span></th>
-        <th data-key="deribitAPRNet">Deribit APR(净) <span class="arrow"></span></th>
+        <th data-key="deribitBid">Bid <span class="arrow"></span></th>
+        <th data-key="deribitAsk">Ask <span class="arrow"></span></th>
+        <th data-key="deribitAPRNet">卖出APR(净) <span class="arrow"></span></th>
         <th data-key="breakeven">盈亏平衡 <span class="arrow"></span></th>
-        <th data-key="diffAPR">APR差值 <span class="arrow"></span></th>
-        <th data-key="extraProfit">10万U额外利润 <span class="arrow"></span></th>
-        <th>Deribit合约 <span class="arrow"></span></th>
+        <th data-key="volume">24h量 <span class="arrow"></span></th>
+        <th>合约 <span class="arrow"></span></th>
         <th>操作</th>
       </tr>
     </thead>
@@ -297,28 +264,21 @@ tr:hover{background:#ffffff06}
 <div class="pos-section" id="posSection">
   <h2>📊 我的持仓 <span class="pos-count" id="posCount">0</span></h2>
   <div id="posContent">
-    <div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>
+    <div class="pos-empty">暂无持仓，可在上方表格中点击「建仓」添加</div>
   </div>
 </div>
 
 <!-- Position Modal -->
 <div class="modal-overlay hidden" id="posModal">
   <div class="modal">
-    <h3 id="modalTitle">新建持仓</h3>
-    <div class="form-row">
-      <label>来源</label>
-      <select id="posSource">
-        <option value="deribit">Deribit</option>
-        <option value="binance">币安期权</option>
-      </select>
-    </div>
+    <h3>新建持仓 (Deribit)</h3>
     <div class="form-row">
       <label>期权合约</label>
-      <input type="text" id="posSymbol" placeholder="如 ETH-27MAR26-2000-P">
+      <input type="text" id="posSymbol" placeholder="如 ETH-27MAR26-3000-C">
     </div>
     <div class="form-row">
-      <label>卖出价格（权利金）</label>
-      <input type="number" id="posSellPrice" step="any" placeholder="如 0.0025（币本位）">
+      <label>卖出价格（币本位权利金）</label>
+      <input type="number" id="posSellPrice" step="any" placeholder="如 0.0025">
     </div>
     <div class="form-row">
       <label>数量（币数）</label>
@@ -335,44 +295,27 @@ tr:hover{background:#ffffff06}
   </div>
 </div>
 
-<!-- Unmatched -->
-<details class="collapsible" id="unmatchedSection" style="display:none">
-  <summary>未匹配的双币理财产品 (<span id="unmatchedCount">0</span>)</summary>
-  <div class="inner">
-    <table class="unmatched-table">
-      <thead>
-        <tr><th>类型</th><th>行权价</th><th>到期日</th><th>天数</th><th>距离%</th><th>双币APR</th><th>Deribit合约</th><th>原因</th></tr>
-      </thead>
-      <tbody id="unmatchedBody"></tbody>
-    </table>
-  </div>
-</details>
-
 <div class="note">
   * Deribit 手续费: Taker 0.03%（标的价值），上限 12.5%（权利金）；行权费 0.015%（实值到期），未计入<br>
-  * 币安双币理财 APR 直接来自币安 API；Deribit 价格为币本位，已按指数价格折算 USD<br>
-  * 正 APR 差值 = Deribit 更优（绿色），负差值 = 双币更优（红色）
+  * 价格为币本位，已按 Deribit 指数价格折算 USD · 盈亏平衡 = 行权价 + 扣费后净 Bid<br>
+  * 数据来源: Deribit 公开 API (无需鉴权)
 </div>
 
 <script>
 // ── State ───────────────────────────────────────────────────────────────────
 let currentCoin = 'ETH';
-let filterType = 'ALL';
 let filterDaysMin = 0;
 let filterDaysMax = 0;
-let sortKey = 'diffAPR';
+let sortKey = 'deribitAPRNet';
 let sortAsc = false;
-let sortPreset = 'diffAPR';
 let autoRefresh = false;
 let autoTimer = null;
 let rawData = null;
 
-// ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
 // ── Init ────────────────────────────────────────────────────────────────────
-checkHealth();
 loadData();
 
 // ── Coin pills ──────────────────────────────────────────────────────────────
@@ -383,16 +326,6 @@ $('#coinGroup').addEventListener('click', (e) => {
   btn.classList.add('active');
   currentCoin = btn.dataset.coin;
   loadData();
-});
-
-// ── Type pills ──────────────────────────────────────────────────────────────
-$('#typeGroup').addEventListener('click', (e) => {
-  const btn = e.target.closest('.pill');
-  if (!btn) return;
-  $$('#typeGroup .pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  filterType = btn.dataset.type;
-  render();
 });
 
 // ── Term pills ──────────────────────────────────────────────────────────────
@@ -412,10 +345,10 @@ $('#sortGroup').addEventListener('click', (e) => {
   if (!btn) return;
   $$('#sortGroup .pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  sortPreset = btn.dataset.sort;
-  if (sortPreset === 'diffAPR') { sortKey = 'diffAPR'; sortAsc = false; }
-  else if (sortPreset === 'extraProfit') { sortKey = 'extraProfit'; sortAsc = false; }
-  else if (sortPreset === 'days_asc') { sortKey = 'days'; sortAsc = true; }
+  const preset = btn.dataset.sort;
+  if (preset === 'aprNet') { sortKey = 'deribitAPRNet'; sortAsc = false; }
+  else if (preset === 'days_asc') { sortKey = 'days'; sortAsc = true; }
+  else if (preset === 'distance') { sortKey = 'distancePct'; sortAsc = true; }
   render();
 });
 
@@ -442,37 +375,22 @@ $$('#dataTable th').forEach(th => {
       sortAsc = !sortAsc;
     } else {
       sortKey = key;
-      sortAsc = key === 'type' || key === 'expiry';
+      sortAsc = key === 'expiry';
     }
-    // 清除 sort pill active
     $$('#sortGroup .pill').forEach(b => b.classList.remove('active'));
     render();
   });
 });
 
-// ── API calls ───────────────────────────────────────────────────────────────
-async function checkHealth() {
-  try {
-    const res = await fetch('/api/health');
-    const j = await res.json();
-    if (j.apiKeyConfigured) {
-      setStatus('ok', 'API Key 已配置，服务正常');
-    } else {
-      setStatus('err', '未配置 API Key，双币理财数据将无法获取');
-    }
-  } catch (e) {
-    setStatus('err', '无法连接后端服务: ' + e.message);
-  }
-}
-
+// ── Data loading ────────────────────────────────────────────────────────────
 async function loadData() {
-  setStatus('loading', `正在加载 ${currentCoin} Deribit 对比数据…`);
+  setStatus('loading', `正在加载 ${currentCoin} Deribit CALL 期权…`);
   try {
     const res = await fetch(`/api/deribit-compare?coin=${currentCoin}`);
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Unknown error');
     rawData = j.data;
-    setStatus('ok', `${currentCoin} 对比数据加载完成 · ${rawData.results.length} 个匹配产品`);
+    setStatus('ok', `${currentCoin} Deribit 数据加载完成 · ${rawData.results.length} 个 CALL 合约`);
     render();
     renderPositions();
   } catch (e) {
@@ -484,7 +402,6 @@ async function loadData() {
 function render() {
   if (!rawData) return;
 
-  // header
   $('#coinLabel').textContent = rawData.coin;
   $('#spotPrice').textContent = '$' + fmtNum(rawData.spotPrice);
   $('#deribitIndex').textContent = '$' + fmtNum(rawData.deribitIndex);
@@ -492,7 +409,6 @@ function render() {
 
   // filter
   let rows = rawData.results.slice();
-  if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
   if (filterDaysMax > 0) rows = rows.filter(r => r.days >= filterDaysMin && r.days <= filterDaysMax);
 
   // sort
@@ -505,73 +421,45 @@ function render() {
   });
 
   // stats
-  const diffs = rows.map(r => r.diffAPR);
+  const aprs = rows.map(r => r.deribitAPRNet).filter(a => a > 0);
   const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const nearest = rows.length ? Math.min(...rows.map(r => r.days)) : null;
   $('#statCount').textContent = rows.length;
-  $('#statUnmatched').textContent = (rawData.unmatched || []).length;
-  $('#statAvgDiff').textContent = diffs.length ? (avg(diffs) * 100).toFixed(2) + '%' : '—';
-  $('#statMaxDiff').textContent = diffs.length ? (Math.max(...diffs) * 100).toFixed(2) + '%' : '—';
-  $('#statSpot').textContent = '$' + fmtNum(rawData.spotPrice);
+  $('#statNearest').textContent = nearest !== null
+    ? (nearest < 1 ? Math.max(1, Math.floor(nearest * 24)) + '小时' : Math.ceil(nearest) + '天')
+    : '—';
+  $('#statAvgAPR').textContent = aprs.length ? (avg(aprs) * 100).toFixed(2) + '%' : '—';
+  $('#statMaxAPR').textContent = aprs.length ? (Math.max(...aprs) * 100).toFixed(2) + '%' : '—';
+  $('#statIndex').textContent = '$' + fmtNum(rawData.deribitIndex);
 
   // sort arrows
   $$('#dataTable th').forEach(th => {
     const arrow = th.querySelector('.arrow');
     if (!arrow) return;
-    if (th.dataset.key === sortKey) {
-      arrow.textContent = sortAsc ? '▲' : '▼';
-    } else {
-      arrow.textContent = '';
-    }
+    arrow.textContent = th.dataset.key === sortKey ? (sortAsc ? '▲' : '▼') : '';
   });
 
   // table
   const tbody = $('#tableBody');
   tbody.innerHTML = rows.map(r => {
-    const diffColor = r.diffAPR >= 0 ? 'var(--green)' : 'var(--red)';
-    const extraColor = r.extraProfit >= 0 ? 'var(--green)' : 'var(--red)';
-    const distColor = r.distancePct >= 0 ? 'var(--green)' : 'var(--red)';
     const distTag = r.distancePct >= 0 ? 'otm' : 'itm';
     const distSign = r.distancePct >= 0 ? '+' : '';
+    const beColor = r.breakevenPct > 0 ? 'var(--green)' : 'var(--red)';
+    const beSign = r.breakevenPct >= 0 ? '+' : '';
     return `<tr>
-    <td><span class="tag ${r.type.toLowerCase()}">${r.type}</span></td>
     <td>${fmtStrike(r.strike)}</td>
     <td>${r.expiry}</td>
     <td>${r.daysLabel}</td>
     <td><span class="tag ${distTag}">${distSign}${r.distancePct.toFixed(1)}%</span></td>
-    <td>${(r.dualAPR * 100).toFixed(2)}%</td>
     <td>${r.deribitBid.toFixed(6)} <span style="font-size:.65rem;color:var(--text2)">($${r.deribitBidUSD.toFixed(2)})</span></td>
-    <td style="color:var(--orange)">${(r.deribitAPRNet * 100).toFixed(2)}%</td>
-    <td style="color:${r.type === 'PUT' ? (r.breakevenPct < 0 ? 'var(--green)' : 'var(--red)') : (r.breakevenPct > 0 ? 'var(--green)' : 'var(--red)')}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${r.breakevenPct >= 0 ? '+' : ''}${r.breakevenPct.toFixed(1)}%)</span></td>
-    <td style="color:${diffColor};font-weight:600">${r.diffAPR >= 0 ? '+' : ''}${(r.diffAPR * 100).toFixed(2)}%</td>
-    <td class="profit" style="color:${extraColor}">${r.extraProfit >= 0 ? '+' : ''}$${r.extraProfit.toFixed(0)}</td>
+    <td>${r.deribitAsk > 0 ? r.deribitAsk.toFixed(6) : '—'} <span style="font-size:.65rem;color:var(--text2)">${r.deribitAskUSD > 0 ? '($' + r.deribitAskUSD.toFixed(2) + ')' : ''}</span></td>
+    <td style="color:var(--green)">${(r.deribitAPRNet * 100).toFixed(2)}%</td>
+    <td style="color:${beColor}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${beSign}${r.breakevenPct.toFixed(1)}%)</span></td>
+    <td>${r.volume > 0 ? r.volume.toFixed(1) : '—'}</td>
     <td style="font-size:.68rem;color:var(--text2)">${r.deribitSymbol}</td>
     <td><button class="btn-open" onclick="openPositionModal('${r.deribitSymbol}', ${r.deribitBid})">建仓</button></td>
   </tr>`;
   }).join('');
-
-  // unmatched
-  const um = rawData.unmatched || [];
-  const umSec = $('#unmatchedSection');
-  if (um.length > 0) {
-    umSec.style.display = '';
-    $('#unmatchedCount').textContent = um.length;
-    $('#unmatchedBody').innerHTML = um.map(u => {
-      const distSign = u.distancePct >= 0 ? '+' : '';
-      const distTag = u.distancePct >= 0 ? 'otm' : 'itm';
-      return `<tr>
-      <td><span class="tag ${u.type.toLowerCase()}">${u.type}</span></td>
-      <td>${fmtStrike(u.strike)}</td>
-      <td>${u.expiry}</td>
-      <td>${u.daysLabel}</td>
-      <td><span class="tag ${distTag}">${distSign}${u.distancePct.toFixed(1)}%</span></td>
-      <td>${(u.dualAPR * 100).toFixed(2)}%</td>
-      <td style="font-size:.7rem;color:var(--text2)">${u.deribitSymbol}</td>
-      <td style="color:var(--red)">${u.reason}</td>
-    </tr>`;
-    }).join('');
-  } else {
-    umSec.style.display = 'none';
-  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -585,8 +473,7 @@ function fmtStrike(v) {
 }
 
 function setStatus(type, msg) {
-  const bar = $('#statusBar');
-  bar.className = 'status-bar ' + type;
+  $('#statusBar').className = 'status-bar ' + type;
   $('#statusText').textContent = msg;
 }
 
@@ -602,11 +489,9 @@ function savePositions(positions) {
 }
 
 function parseExpiryFromSymbol(symbol) {
-  // Deribit 格式: ETH-27MAR26-2000-P
   const parts = symbol.split('-');
   if (parts.length < 3) return null;
   const dateStr = parts[1];
-  // 尝试 Deribit 格式 (27MAR26)
   const deribitMatch = dateStr.match(/^(\d{1,2})([A-Z]{3})(\d{2})$/);
   if (deribitMatch) {
     const months = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
@@ -615,22 +500,13 @@ function parseExpiryFromSymbol(symbol) {
     const yy = parseInt(deribitMatch[3]);
     if (mm !== undefined) return new Date(2000 + yy, mm, dd);
   }
-  // 币安格式 (YYMMDD)
   if (dateStr.length === 6 && /^\d{6}$/.test(dateStr)) {
-    const yy = parseInt(dateStr.substring(0, 2));
-    const mm = parseInt(dateStr.substring(2, 4));
-    const dd = parseInt(dateStr.substring(4, 6));
-    return new Date(2000 + yy, mm - 1, dd);
+    return new Date(2000 + parseInt(dateStr.substring(0, 2)), parseInt(dateStr.substring(2, 4)) - 1, parseInt(dateStr.substring(4, 6)));
   }
   return null;
 }
 
-function parseCoinFromSymbol(symbol) {
-  return symbol.split('-')[0] || '';
-}
-
 function openPositionModal(symbol, bidPrice) {
-  $('#posSource').value = 'deribit';
   $('#posSymbol').value = symbol || '';
   $('#posSellPrice').value = bidPrice ? Number(bidPrice).toFixed(6) : '';
   $('#posQty').value = '';
@@ -645,7 +521,6 @@ function closeModal() {
 }
 
 function savePosition() {
-  const source = $('#posSource').value;
   const symbol = $('#posSymbol').value.trim().toUpperCase();
   const sellPrice = parseFloat($('#posSellPrice').value);
   const qty = parseFloat($('#posQty').value);
@@ -663,7 +538,7 @@ function savePosition() {
     sellPrice,
     qty,
     openDate: date,
-    source: source,
+    source: 'deribit',
   });
   savePositions(positions);
   closeModal();
@@ -672,19 +547,17 @@ function savePosition() {
 
 function deletePosition(id) {
   if (!confirm('确定删除此持仓记录？')) return;
-  const positions = getPositions().filter(p => p.id !== id);
-  savePositions(positions);
+  savePositions(getPositions().filter(p => p.id !== id));
   renderPositions();
 }
 
 function renderPositions() {
   const positions = getPositions();
-  const countEl = $('#posCount');
+  $('#posCount').textContent = positions.length;
   const contentEl = $('#posContent');
-  countEl.textContent = positions.length;
 
   if (positions.length === 0) {
-    contentEl.innerHTML = '<div class="pos-empty">暂无持仓，可在上方对比表格中点击「建仓」添加</div>';
+    contentEl.innerHTML = '<div class="pos-empty">暂无持仓，可在上方表格中点击「建仓」添加</div>';
     return;
   }
 
@@ -694,9 +567,7 @@ function renderPositions() {
     const openDate = new Date(p.openDate);
     const daysLeft = expiry ? Math.max(0, Math.ceil((expiry - now) / 86400000)) : null;
     const daysHeld = Math.max(1, Math.ceil((now - openDate) / 86400000));
-    const source = p.source || 'binance';
-
-    return { ...p, expiry, daysLeft, daysHeld, source };
+    return { ...p, daysLeft, daysHeld };
   });
 
   contentEl.innerHTML = `
@@ -707,7 +578,7 @@ function renderPositions() {
         <th>剩余天数</th><th>已持有</th><th>操作</th>
       </tr></thead>
       <tbody>${rows.map(r => `<tr>
-        <td><span class="tag" style="background:${r.source === 'deribit' ? '#fb923c22' : '#818cf822'};color:${r.source === 'deribit' ? 'var(--orange)' : 'var(--purple)'}">${r.source === 'deribit' ? 'Deribit' : '币安'}</span></td>
+        <td><span class="tag" style="background:#fb923c22;color:var(--orange)">${r.source === 'deribit' ? 'Deribit' : r.source || '—'}</span></td>
         <td style="font-size:.7rem">${r.symbol}</td>
         <td>${r.sellPrice}</td>
         <td>${r.qty}</td>
@@ -723,10 +594,8 @@ function renderPositions() {
   `;
 }
 
-// 页面加载时渲染持仓
 renderPositions();
 
-// 点击弹窗外部关闭
 $('#posModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
