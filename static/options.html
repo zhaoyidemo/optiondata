@@ -507,9 +507,13 @@ function calcRow(ticker, parsed) {
     breakevenPct = (breakeven - spotPrice) / spotPrice * 100;
   }
 
+  const aprNetVal = Math.max(0, aprNet);
+  const profit = aprNetVal > 0 ? Math.round(100000 * aprNetVal * days / 365) : 0;
+
   return {
     bid, ask, lastPrice, volume,
-    aprNet: Math.max(0, aprNet),
+    aprNet: aprNetVal,
+    profit,
     moneyness: Math.round(moneyness * 100) / 100,
     moneynessLabel,
     breakeven,
@@ -581,7 +585,7 @@ function render() {
     <td>${r.volume ? r.volume.toFixed(1) : '—'}</td>
     <td style="color:${beColor}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${beSign}${r.breakevenPct.toFixed(1)}%)</span></td>
     <td style="color:var(--green)">${r.aprNet > 0 ? (r.aprNet * 100).toFixed(1) + '%' : '—'}</td>
-    <td style="color:var(--yellow)">${r.aprNet > 0 ? '$' + (100000 * r.aprNet * r.daysLeft / 365).toFixed(0) : '—'}</td>
+    <td style="color:var(--yellow)">${r.profit > 0 ? '$' + r.profit : '—'}</td>
     <td>${r.bid > 0 ? `<button class="btn-open" onclick="openPositionModal('${r.symbol}', ${r.bid})">建仓</button>` : ''}</td>
   </tr>`;
   }).join('');

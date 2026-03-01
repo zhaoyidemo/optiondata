@@ -445,8 +445,13 @@ function render() {
   $('#deribitIndex').textContent = '$' + fmtNum(rawData.deribitIndex);
   $('#updateTime').textContent = rawData.timestamp.replace('T', ' ').replace('Z', ' UTC');
 
+  // add computed profit
+  let rows = rawData.results.map(r => ({
+    ...r,
+    profit: Math.round(100000 * r.deribitAPRNet * r.days / 365),
+  }));
+
   // filter
-  let rows = rawData.results.slice();
   if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
   if (filterDaysMax > 0) rows = rows.filter(r => r.days >= filterDaysMin && r.days <= filterDaysMax);
   if (filterMoneyness === 'OTM') rows = rows.filter(r => r.distancePct > 0.5);
@@ -499,7 +504,7 @@ function render() {
     <td>${r.deribitAsk > 0 ? r.deribitAsk.toFixed(6) : '—'} <span style="font-size:.65rem;color:var(--text2)">${r.deribitAskUSD > 0 ? '($' + r.deribitAskUSD.toFixed(2) + ')' : ''}</span></td>
     <td style="color:var(--green)">${(r.deribitAPRNet * 100).toFixed(2)}%</td>
     <td style="color:${beColor}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${beSign}${r.breakevenPct.toFixed(1)}%)</span></td>
-    <td style="color:var(--yellow)">$${(100000 * r.deribitAPRNet * r.days / 365).toFixed(0)}</td>
+    <td style="color:var(--yellow)">$${r.profit}</td>
     <td>${r.volume > 0 ? r.volume.toFixed(1) : '—'}</td>
     <td style="font-size:.68rem;color:var(--text2)">${r.deribitSymbol}</td>
     <td><button class="btn-open" onclick="openPositionModal('${r.deribitSymbol}', ${r.deribitBid})">建仓</button></td>
