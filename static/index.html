@@ -251,11 +251,11 @@ tr:hover{background:#ffffff06}
   </div>
   <label>期限</label>
   <div class="pill-group" id="termGroup">
-    <button class="pill active" data-days="0">全部</button>
-    <button class="pill" data-days="3">≤3天</button>
-    <button class="pill" data-days="7">≤7天</button>
-    <button class="pill" data-days="14">≤14天</button>
-    <button class="pill" data-days="30">≤30天</button>
+    <button class="pill active" data-min="0" data-max="0">全部</button>
+    <button class="pill" data-min="0" data-max="3">0-3天</button>
+    <button class="pill" data-min="3" data-max="7">3-7天</button>
+    <button class="pill" data-min="7" data-max="14">7-14天</button>
+    <button class="pill" data-min="14" data-max="30">14-30天</button>
   </div>
   <div class="spacer"></div>
   <button class="btn" id="btnRefresh">⟳ 刷新</button>
@@ -365,7 +365,8 @@ tr:hover{background:#ffffff06}
 // ── State ───────────────────────────────────────────────────────────────────
 let currentCoin = 'ETH';
 let filterType = 'ALL';
-let filterDays = 0;
+let filterDaysMin = 0;
+let filterDaysMax = 0;
 let sortKey = 'spreadPct';
 let sortAsc = false;
 let autoRefresh = false;
@@ -420,7 +421,8 @@ $('#termGroup').addEventListener('click', (e) => {
   if (!btn) return;
   $$('#termGroup .pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  filterDays = parseInt(btn.dataset.days);
+  filterDaysMin = parseInt(btn.dataset.min);
+  filterDaysMax = parseInt(btn.dataset.max);
   render();
 });
 
@@ -507,7 +509,7 @@ function render() {
   // filter
   let rows = rawData.results.slice();
   if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
-  if (filterDays > 0) rows = rows.filter(r => r.days <= filterDays);
+  if (filterDaysMax > 0) rows = rows.filter(r => r.days >= filterDaysMin && r.days <= filterDaysMax);
 
   // sort
   rows.sort((a, b) => {
