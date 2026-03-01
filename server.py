@@ -18,6 +18,7 @@ BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
 # 币安 API 基础 URL（可通过环境变量覆盖，用于代理或切换域名）
 BINANCE_API_BASE = os.environ.get("BINANCE_API_BASE", "https://api.binance.com")
 BINANCE_EAPI_BASE = os.environ.get("BINANCE_EAPI_BASE", "https://eapi.binance.com")
+DERIBIT_API_BASE = os.environ.get("DERIBIT_API_BASE", "https://www.deribit.com/api/v2")
 
 SUPPORTED_COINS = ["ETH", "BTC"]
 
@@ -142,6 +143,158 @@ def fetch_option_depth(symbol: str) -> tuple:
     if bids:
         return float(bids[0][0]), float(bids[0][1])
     return 0.0, 0.0
+
+
+# ── Deribit API calls ─────────────────────────────────────────────────────────
+
+DERIBIT_MONTH_MAP = {
+    1: "JAN", 2: "FEB", 3: "MAR", 4: "APR", 5: "MAY", 6: "JUN",
+    7: "JUL", 8: "AUG", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DEC",
+}
+
+
+def fetch_deribit_index(coin: str) -> float:
+    """Fetch Deribit USD index price for coin."""
+    url = f"{DERIBIT_API_BASE}/public/get_index_price?index_name={coin.lower()}_usd"
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    return float(r.json()["result"]["index_price"])
+
+
+def fetch_deribit_tickers(coin: str) -> dict:
+    """Fetch Deribit option book summaries, return {instrument_name: data}."""
+    url = f"{DERIBIT_API_BASE}/public/get_book_summary_by_currency?currency={coin}&kind=option"
+    r = requests.get(url, timeout=15)
+    r.raise_for_status()
+    result = {}
+    for item in r.json().get("result", []):
+        result[item["instrument_name"]] = item
+    return result
+
+
+def _settle_ts_to_deribit_date(ts_ms) -> str:
+    """Convert millisecond timestamp to Deribit date format: 27MAR26."""
+    dt = datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc)
+    day = dt.strftime("%d")
+    mon = DERIBIT_MONTH_MAP[dt.month]
+    yy = dt.strftime("%y")
+    return f"{day}{mon}{yy}"
+
+
+def compare_deribit(coin: str) -> dict:
+    """Compare Binance dual investment vs Deribit option selling."""
+    invest_amount = 100000
+
+    spot = fetch_spot_price(coin)
+    products = fetch_dual_products(coin)
+    deribit_tickers = fetch_deribit_tickers(coin)
+    deribit_index = fetch_deribit_index(coin)
+
+    results = []
+    unmatched = []
+
+    for p in products:
+        opt_type = p["_optionType"]
+        strike = float(p["strikePrice"])
+        settle_ts = int(p["settleDate"])
+        dual_apr = float(p["apr"])
+
+        strike_str = _format_strike(strike)
+        cp = "C" if opt_type == "CALL" else "P"
+        deribit_date = _settle_ts_to_deribit_date(settle_ts)
+        deribit_symbol = f"{coin}-{deribit_date}-{strike_str}-{cp}"
+
+        days = _days_until(settle_ts)
+        expiry = _expiry_date(settle_ts)
+
+        ticker = deribit_tickers.get(deribit_symbol)
+        bid_coin = 0.0
+        if ticker:
+            bid_coin = float(ticker.get("bid_price") or 0)
+
+        # 距离%
+        if opt_type == "CALL":
+            distance_pct = (strike - spot) / spot * 100 if spot > 0 else 0
+        else:
+            distance_pct = (spot - strike) / spot * 100 if spot > 0 else 0
+
+        if bid_coin <= 0:
+            unmatched.append({
+                "type": opt_type,
+                "strike": strike,
+                "expiry": expiry,
+                "days": days,
+                "daysLabel": _days_label(days),
+                "distancePct": round(distance_pct, 2),
+                "dualAPR": dual_apr,
+                "deribitSymbol": deribit_symbol,
+                "reason": "no bid" if ticker else "no contract",
+            })
+            continue
+
+        bid_usd = bid_coin * deribit_index
+
+        # Deribit Taker 手续费: min(0.03% × 标的, 12.5% × 权利金)
+        fee = min(0.0003 * deribit_index, 0.125 * bid_usd)
+        net_bid = bid_usd - fee
+
+        if opt_type == "PUT":
+            deribit_apr_gross = (bid_usd / strike) * (365 / days)
+            deribit_apr_net = (net_bid / strike) * (365 / days)
+        else:
+            deribit_apr_gross = (bid_usd / deribit_index) * (365 / days)
+            deribit_apr_net = (net_bid / deribit_index) * (365 / days)
+
+        fee_apr = deribit_apr_gross - deribit_apr_net
+        diff_apr = deribit_apr_net - dual_apr
+        spread_pct = (diff_apr / deribit_apr_net * 100) if deribit_apr_net > 0 else 0
+
+        period = days / 365
+        dual_profit = invest_amount * dual_apr * period
+        deribit_profit = invest_amount * deribit_apr_net * period
+        extra_profit = deribit_profit - dual_profit
+
+        results.append({
+            "type": opt_type,
+            "strike": strike,
+            "expiry": expiry,
+            "days": days,
+            "daysLabel": _days_label(days),
+            "distancePct": round(distance_pct, 2),
+            "dualAPR": round(dual_apr, 6),
+            "dualProfit": round(dual_profit, 2),
+            "deribitSymbol": deribit_symbol,
+            "deribitBid": round(bid_coin, 6),
+            "deribitBidUSD": round(bid_usd, 4),
+            "deribitAPR": round(deribit_apr_gross, 6),
+            "deribitAPRNet": round(deribit_apr_net, 6),
+            "deribitFeeAPR": round(fee_apr, 6),
+            "deribitProfit": round(deribit_profit, 2),
+            "diffAPR": round(diff_apr, 6),
+            "extraProfit": round(extra_profit, 2),
+            "spreadPct": round(spread_pct, 2),
+        })
+
+    diffs = [r["diffAPR"] for r in results]
+    spreads = [r["spreadPct"] for r in results]
+
+    stats = {
+        "count": len(results),
+        "unmatched": len(unmatched),
+        "avgDiffAPR": round(sum(diffs) / len(diffs), 6) if diffs else 0,
+        "avgSpread": round(sum(spreads) / len(spreads), 2) if spreads else 0,
+        "maxDiffAPR": round(max(diffs), 6) if diffs else 0,
+    }
+
+    return {
+        "coin": coin,
+        "spotPrice": spot,
+        "deribitIndex": deribit_index,
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
+        "results": results,
+        "unmatched": unmatched,
+        "stats": stats,
+    }
 
 
 # ── core comparison logic ────────────────────────────────────────────────────
@@ -336,6 +489,25 @@ def api_compare():
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[ERROR] /api/compare?coin={coin}\n{tb}")
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
+
+
+@app.route("/deribit")
+def deribit_page():
+    return send_from_directory("static", "deribit.html")
+
+
+@app.route("/api/deribit-compare")
+def api_deribit_compare():
+    coin = request.args.get("coin", "ETH").upper()
+    if coin not in SUPPORTED_COINS:
+        return jsonify({"ok": False, "error": f"Unsupported coin: {coin}"}), 400
+    try:
+        data = compare_deribit(coin)
+        return jsonify({"ok": True, "data": data})
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/deribit-compare?coin={coin}\n{tb}")
         return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 

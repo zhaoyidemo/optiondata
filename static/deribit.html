@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>币安双币理财 vs 期权卖出 — 收益对比</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<title>币安双币 vs Deribit 期权 — 收益对比</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -13,7 +12,7 @@
   --bg:#0f1117;--surface:#1a1d27;--border:#2a2d3a;
   --text:#e2e8f0;--text2:#94a3b8;
   --green:#4ade80;--red:#f87171;--yellow:#fbbf24;--purple:#818cf8;
-  --blue:#60a5fa;
+  --blue:#60a5fa;--orange:#fb923c;
 }
 body{
   font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);
@@ -21,11 +20,30 @@ body{
 }
 a{color:var(--purple)}
 
+/* nav bar */
+.nav-bar{
+  display:flex;align-items:center;gap:0;
+  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);
+}
+.nav-link{
+  padding:8px 20px;font-size:.8rem;color:var(--text2);
+  text-decoration:none;border-radius:6px 6px 0 0;
+  border:1px solid transparent;border-bottom:none;
+  transition:all .15s;font-family:inherit;
+  position:relative;top:1px;
+}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{
+  color:var(--green);background:var(--surface);
+  border-color:var(--border);
+}
+
 /* header */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-.header h1{font-size:1.2rem;color:var(--green)}
-.header .spot{font-size:.95rem;color:var(--text2)}
+.header h1{font-size:1.2rem;color:var(--orange)}
+.header .spot{font-size:.85rem;color:var(--text2)}
 .header .spot b{color:var(--yellow);font-weight:600}
+.header .spot .deribit-idx{color:var(--orange)}
 
 /* status bar */
 .status-bar{
@@ -75,15 +93,8 @@ a{color:var(--purple)}
 .stat-card .value.yellow{color:var(--yellow)}
 .stat-card .value.purple{color:var(--purple)}
 .stat-card .value.blue{color:var(--blue)}
-
-/* charts */
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-.chart-box{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:16px;
-}
-.chart-box h3{font-size:.8rem;color:var(--text2);margin-bottom:12px}
-@media(max-width:900px){.charts{grid-template-columns:1fr}}
+.stat-card .value.orange{color:var(--orange)}
+.stat-card .value.red{color:var(--red)}
 
 /* table */
 .table-wrap{
@@ -105,13 +116,8 @@ tr:hover{background:#ffffff06}
 }
 .tag.call{background:#818cf822;color:var(--purple)}
 .tag.put{background:#60a5fa22;color:var(--blue)}
-.tag.low{background:#4ade8022;color:var(--green)}
-.tag.mid{background:#fbbf2422;color:var(--yellow)}
-.tag.high{background:#f8717122;color:var(--red)}
-.tag.liq-high{background:#4ade8022;color:var(--green)}
-.tag.liq-mid{background:#fbbf2422;color:var(--yellow)}
-.tag.liq-low{background:#f8717122;color:var(--red)}
-.tag.liq-none{background:#64748b22;color:#64748b}
+.tag.otm{background:#4ade8022;color:var(--green)}
+.tag.itm{background:#f8717122;color:var(--red)}
 .profit{font-weight:600}
 
 /* collapsible */
@@ -182,11 +188,11 @@ tr:hover{background:#ffffff06}
 .modal h3{font-size:.9rem;color:var(--green);margin-bottom:16px}
 .modal .form-row{margin-bottom:12px}
 .modal .form-row label{display:block;font-size:.7rem;color:var(--text2);margin-bottom:4px}
-.modal .form-row input{
+.modal .form-row input,.modal .form-row select{
   width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--border);
   background:var(--bg);color:var(--text);font-family:inherit;font-size:.8rem;
 }
-.modal .form-row input:focus{outline:none;border-color:var(--purple)}
+.modal .form-row input:focus,.modal .form-row select:focus{outline:none;border-color:var(--purple)}
 .modal .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .modal .form-actions button{
   padding:8px 20px;border-radius:6px;font-size:.78rem;cursor:pointer;
@@ -196,45 +202,28 @@ tr:hover{background:#ffffff06}
 .modal .btn-cancel:hover{background:#3a3d4a}
 .modal .btn-submit{background:var(--green);color:var(--bg);font-weight:600}
 .modal .btn-submit:hover{opacity:.85}
-
-/* nav bar */
-.nav-bar{
-  display:flex;align-items:center;gap:0;
-  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);
-}
-.nav-link{
-  padding:8px 20px;font-size:.8rem;color:var(--text2);
-  text-decoration:none;border-radius:6px 6px 0 0;
-  border:1px solid transparent;border-bottom:none;
-  transition:all .15s;font-family:inherit;
-  position:relative;top:1px;
-}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{
-  color:var(--green);background:var(--surface);
-  border-color:var(--border);
-}
 </style>
 </head>
 <body>
 
 <!-- Navigation -->
 <nav class="nav-bar">
-  <a class="nav-link active" href="/">双币对比</a>
+  <a class="nav-link" href="/">双币对比</a>
   <a class="nav-link" href="/options">期权行情</a>
-  <a class="nav-link" href="/deribit">Deribit对比</a>
+  <a class="nav-link active" href="/deribit">Deribit对比</a>
 </nav>
 
 <div class="header">
-  <h1>币安双币理财 vs 期权卖出</h1>
+  <h1>币安双币 vs Deribit 期权</h1>
   <div class="spot">
     <span id="coinLabel">ETH</span>/USDT 现货: <b id="spotPrice">—</b>
+    &nbsp;·&nbsp; Deribit指数: <b class="deribit-idx" id="deribitIndex">—</b>
     &nbsp;·&nbsp; <span id="updateTime">—</span>
   </div>
 </div>
 
 <div id="statusBar" class="status-bar loading">
-  <span class="dot"></span> <span id="statusText">检查服务状态…</span>
+  <span class="dot"></span> <span id="statusText">正在加载…</span>
 </div>
 
 <!-- Filters -->
@@ -257,6 +246,14 @@ tr:hover{background:#ffffff06}
     <button class="pill" data-min="3" data-max="7">3-7天</button>
     <button class="pill" data-min="7" data-max="14">7-14天</button>
     <button class="pill" data-min="14" data-max="30">14-30天</button>
+    <button class="pill" data-min="30" data-max="90">30-90天</button>
+    <button class="pill" data-min="90" data-max="9999">90天+</button>
+  </div>
+  <label>排序</label>
+  <div class="pill-group" id="sortGroup">
+    <button class="pill active" data-sort="diffAPR">APR差值</button>
+    <button class="pill" data-sort="extraProfit">额外利润</button>
+    <button class="pill" data-sort="days_asc">天数↑</button>
   </div>
   <div class="spacer"></div>
   <button class="btn" id="btnRefresh">⟳ 刷新</button>
@@ -265,23 +262,11 @@ tr:hover{background:#ffffff06}
 
 <!-- Stats -->
 <div class="stats">
-  <div class="stat-card"><div class="label">平均抽成</div><div class="value yellow" id="statAvgSpread">—</div></div>
-  <div class="stat-card"><div class="label">平均多赚 APR</div><div class="value green" id="statAvgDiff">—</div></div>
-  <div class="stat-card"><div class="label">10万U最大多赚</div><div class="value green" id="statMaxExtra">—</div></div>
   <div class="stat-card"><div class="label">匹配产品数</div><div class="value purple" id="statCount">—</div></div>
+  <div class="stat-card"><div class="label">未匹配数</div><div class="value red" id="statUnmatched">—</div></div>
+  <div class="stat-card"><div class="label">平均APR差值</div><div class="value green" id="statAvgDiff">—</div></div>
+  <div class="stat-card"><div class="label">最大APR差值</div><div class="value orange" id="statMaxDiff">—</div></div>
   <div class="stat-card"><div class="label">现货价格</div><div class="value blue" id="statSpot">—</div></div>
-</div>
-
-<!-- Charts -->
-<div class="charts">
-  <div class="chart-box">
-    <h3>双币APR vs 期权APR 对比</h3>
-    <canvas id="barChart"></canvas>
-  </div>
-  <div class="chart-box">
-    <h3>到期天数 vs 抽成比例</h3>
-    <canvas id="scatterChart"></canvas>
-  </div>
 </div>
 
 <!-- Data Table -->
@@ -293,15 +278,13 @@ tr:hover{background:#ffffff06}
         <th data-key="strike">行权价 <span class="arrow"></span></th>
         <th data-key="expiry">到期日 <span class="arrow"></span></th>
         <th data-key="days">天数 <span class="arrow"></span></th>
+        <th data-key="distancePct">距离% <span class="arrow"></span></th>
         <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
-        <th data-key="optionAPRNet">期权APR(净) <span class="arrow"></span></th>
-        <th data-key="diffAPR">差值APR <span class="arrow"></span></th>
-        <th data-key="dualProfit">双币利润 <span class="arrow"></span></th>
-        <th data-key="optionProfit">期权利润 <span class="arrow"></span></th>
-        <th data-key="extraProfit">多赚 <span class="arrow"></span></th>
-        <th data-key="optionBid">Bid价 <span class="arrow"></span></th>
-        <th data-key="bidNotional">Bid深度 <span class="arrow"></span></th>
-        <th data-key="spreadPct">抽成% <span class="arrow"></span></th>
+        <th data-key="deribitBid">Deribit Bid <span class="arrow"></span></th>
+        <th data-key="deribitAPRNet">Deribit APR(净) <span class="arrow"></span></th>
+        <th data-key="diffAPR">APR差值 <span class="arrow"></span></th>
+        <th data-key="extraProfit">10万U额外利润 <span class="arrow"></span></th>
+        <th>Deribit合约 <span class="arrow"></span></th>
         <th>操作</th>
       </tr>
     </thead>
@@ -322,12 +305,19 @@ tr:hover{background:#ffffff06}
   <div class="modal">
     <h3 id="modalTitle">新建持仓</h3>
     <div class="form-row">
+      <label>来源</label>
+      <select id="posSource">
+        <option value="deribit">Deribit</option>
+        <option value="binance">币安期权</option>
+      </select>
+    </div>
+    <div class="form-row">
       <label>期权合约</label>
-      <input type="text" id="posSymbol" placeholder="如 ETH-260327-2000-P">
+      <input type="text" id="posSymbol" placeholder="如 ETH-27MAR26-2000-P">
     </div>
     <div class="form-row">
       <label>卖出价格（权利金）</label>
-      <input type="number" id="posSellPrice" step="any" placeholder="如 50.5">
+      <input type="number" id="posSellPrice" step="any" placeholder="如 0.0025（币本位）">
     </div>
     <div class="form-row">
       <label>数量（币数）</label>
@@ -350,7 +340,7 @@ tr:hover{background:#ffffff06}
   <div class="inner">
     <table class="unmatched-table">
       <thead>
-        <tr><th>类型</th><th>投入</th><th>行权价</th><th>到期日</th><th>天数</th><th>双币APR</th><th>期权符号</th><th>原因</th></tr>
+        <tr><th>类型</th><th>行权价</th><th>到期日</th><th>天数</th><th>距离%</th><th>双币APR</th><th>Deribit合约</th><th>原因</th></tr>
       </thead>
       <tbody id="unmatchedBody"></tbody>
     </table>
@@ -358,8 +348,9 @@ tr:hover{background:#ffffff06}
 </details>
 
 <div class="note">
-  * 期权交易手续费已按 0.024%（名义价值）计入；行权费 0.015% 仅实值到期时收取，未计入<br>
-  * 数据来源: 币安双币理财 API + 币安欧式期权 API
+  * Deribit 手续费: Taker 0.03%（标的价值），上限 12.5%（权利金）；行权费 0.015%（实值到期），未计入<br>
+  * 币安双币理财 APR 直接来自币安 API；Deribit 价格为币本位，已按指数价格折算 USD<br>
+  * 正 APR 差值 = Deribit 更优（绿色），负差值 = 双币更优（红色）
 </div>
 
 <script>
@@ -368,25 +359,12 @@ let currentCoin = 'ETH';
 let filterType = 'ALL';
 let filterDaysMin = 0;
 let filterDaysMax = 0;
-let sortKey = 'spreadPct';
+let sortKey = 'diffAPR';
 let sortAsc = false;
+let sortPreset = 'diffAPR';
 let autoRefresh = false;
 let autoTimer = null;
 let rawData = null;
-let allTickers = {};  // symbol -> askPrice 映射
-
-// ── Chart instances ─────────────────────────────────────────────────────────
-let barChart = null;
-let scatterChart = null;
-
-const chartDefaults = {
-  color: '#94a3b8',
-  borderColor: '#2a2d3a',
-  font: { family: "'JetBrains Mono', monospace" },
-};
-Chart.defaults.color = chartDefaults.color;
-Chart.defaults.borderColor = chartDefaults.borderColor;
-Chart.defaults.font.family = chartDefaults.font.family;
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = (s) => document.querySelector(s);
@@ -427,6 +405,19 @@ $('#termGroup').addEventListener('click', (e) => {
   render();
 });
 
+// ── Sort pills ──────────────────────────────────────────────────────────────
+$('#sortGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#sortGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  sortPreset = btn.dataset.sort;
+  if (sortPreset === 'diffAPR') { sortKey = 'diffAPR'; sortAsc = false; }
+  else if (sortPreset === 'extraProfit') { sortKey = 'extraProfit'; sortAsc = false; }
+  else if (sortPreset === 'days_asc') { sortKey = 'days'; sortAsc = true; }
+  render();
+});
+
 // ── Refresh ─────────────────────────────────────────────────────────────────
 $('#btnRefresh').addEventListener('click', () => loadData());
 
@@ -450,8 +441,10 @@ $$('#dataTable th').forEach(th => {
       sortAsc = !sortAsc;
     } else {
       sortKey = key;
-      sortAsc = true;
+      sortAsc = key === 'type' || key === 'expiry';
     }
+    // 清除 sort pill active
+    $$('#sortGroup .pill').forEach(b => b.classList.remove('active'));
     render();
   });
 });
@@ -472,25 +465,13 @@ async function checkHealth() {
 }
 
 async function loadData() {
-  setStatus('loading', `正在加载 ${currentCoin} 数据…`);
+  setStatus('loading', `正在加载 ${currentCoin} Deribit 对比数据…`);
   try {
-    const [compareRes, tickerRes] = await Promise.all([
-      fetch(`/api/compare?coin=${currentCoin}`),
-      fetch(`/api/options-tickers?coin=${currentCoin}`)
-    ]);
-    const j = await compareRes.json();
+    const res = await fetch(`/api/deribit-compare?coin=${currentCoin}`);
+    const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Unknown error');
     rawData = j.data;
-    // 解析 tickers 用于持仓面板（tickers 是 {symbol: tickerObj} 的字典）
-    try {
-      const tj = await tickerRes.json();
-      if (tj.ok && tj.tickers) {
-        Object.assign(allTickers, tj.tickers);
-      }
-    } catch(_) {}
-    // 如果持仓中有非当前币种的合约，也获取其 tickers
-    await loadMissingTickers();
-    setStatus('ok', `${currentCoin} 数据加载完成 · ${rawData.results.length} 个匹配产品`);
+    setStatus('ok', `${currentCoin} 对比数据加载完成 · ${rawData.results.length} 个匹配产品`);
     render();
     renderPositions();
   } catch (e) {
@@ -504,7 +485,8 @@ function render() {
 
   // header
   $('#coinLabel').textContent = rawData.coin;
-  $('#spotPrice').textContent = '$' + Number(rawData.spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $('#spotPrice').textContent = '$' + fmtNum(rawData.spotPrice);
+  $('#deribitIndex').textContent = '$' + fmtNum(rawData.deribitIndex);
   $('#updateTime').textContent = rawData.timestamp.replace('T', ' ').replace('Z', ' UTC');
 
   // filter
@@ -521,17 +503,14 @@ function render() {
     return 0;
   });
 
-  // stats (from filtered)
-  const spreads = rows.map(r => r.spreadPct);
+  // stats
   const diffs = rows.map(r => r.diffAPR);
   const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-
-  const extras = rows.map(r => r.extraProfit);
-  $('#statAvgSpread').textContent = spreads.length ? avg(spreads).toFixed(1) + '%' : '—';
-  $('#statAvgDiff').textContent = diffs.length ? (avg(diffs) * 100).toFixed(2) + '%' : '—';
-  $('#statMaxExtra').textContent = extras.length ? '$' + Math.max(...extras).toFixed(0) : '—';
   $('#statCount').textContent = rows.length;
-  $('#statSpot').textContent = '$' + Number(rawData.spotPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $('#statUnmatched').textContent = (rawData.unmatched || []).length;
+  $('#statAvgDiff').textContent = diffs.length ? (avg(diffs) * 100).toFixed(2) + '%' : '—';
+  $('#statMaxDiff').textContent = diffs.length ? (Math.max(...diffs) * 100).toFixed(2) + '%' : '—';
+  $('#statSpot').textContent = '$' + fmtNum(rawData.spotPrice);
 
   // sort arrows
   $$('#dataTable th').forEach(th => {
@@ -546,22 +525,27 @@ function render() {
 
   // table
   const tbody = $('#tableBody');
-  tbody.innerHTML = rows.map(r => `<tr>
-    <td><span class="tag ${r.type.toLowerCase()}">${r.typeLabel}</span></td>
+  tbody.innerHTML = rows.map(r => {
+    const diffColor = r.diffAPR >= 0 ? 'var(--green)' : 'var(--red)';
+    const extraColor = r.extraProfit >= 0 ? 'var(--green)' : 'var(--red)';
+    const distColor = r.distancePct >= 0 ? 'var(--green)' : 'var(--red)';
+    const distTag = r.distancePct >= 0 ? 'otm' : 'itm';
+    const distSign = r.distancePct >= 0 ? '+' : '';
+    return `<tr>
+    <td><span class="tag ${r.type.toLowerCase()}">${r.type}</span></td>
     <td>${fmtStrike(r.strike)}</td>
     <td>${r.expiry}</td>
     <td>${r.daysLabel}</td>
+    <td><span class="tag ${distTag}">${distSign}${r.distancePct.toFixed(1)}%</span></td>
     <td>${(r.dualAPR * 100).toFixed(2)}%</td>
-    <td style="color:var(--green)">${(r.optionAPRNet * 100).toFixed(2)}%</td>
-    <td style="color:var(--${r.diffAPR >= 0 ? 'green' : 'red'})">${(r.diffAPR * 100).toFixed(2)}%</td>
-    <td class="profit" style="color:var(--purple)">$${r.dualProfit.toFixed(0)}</td>
-    <td class="profit" style="color:var(--green)">$${r.optionProfit.toFixed(0)}</td>
-    <td class="profit" style="color:var(--${r.extraProfit >= 0 ? 'yellow' : 'red'})">$${r.extraProfit.toFixed(0)}</td>
-    <td>${r.optionBid.toFixed(2)}</td>
-    <td><span class="tag ${liqClass(r.bidNotional)}">${fmtNotional(r.bidNotional)}</span></td>
-    <td><span class="tag ${spreadClass(r.spreadPct)}">${r.spreadPct.toFixed(1)}%</span></td>
-    <td><button class="btn-open" onclick="openPositionModal('${r.optionSymbol || buildSymbol(r)}', ${r.optionBid})">建仓</button></td>
-  </tr>`).join('');
+    <td>${r.deribitBid.toFixed(6)} <span style="font-size:.65rem;color:var(--text2)">($${r.deribitBidUSD.toFixed(2)})</span></td>
+    <td style="color:var(--orange)">${(r.deribitAPRNet * 100).toFixed(2)}%</td>
+    <td style="color:${diffColor};font-weight:600">${r.diffAPR >= 0 ? '+' : ''}${(r.diffAPR * 100).toFixed(2)}%</td>
+    <td class="profit" style="color:${extraColor}">${r.extraProfit >= 0 ? '+' : ''}$${r.extraProfit.toFixed(0)}</td>
+    <td style="font-size:.68rem;color:var(--text2)">${r.deribitSymbol}</td>
+    <td><button class="btn-open" onclick="openPositionModal('${r.deribitSymbol}', ${r.deribitBid})">建仓</button></td>
+  </tr>`;
+  }).join('');
 
   // unmatched
   const um = rawData.unmatched || [];
@@ -569,169 +553,42 @@ function render() {
   if (um.length > 0) {
     umSec.style.display = '';
     $('#unmatchedCount').textContent = um.length;
-    $('#unmatchedBody').innerHTML = um.map(u => `<tr>
-      <td><span class="tag ${u.type.toLowerCase()}">${u.typeLabel}</span></td>
-      <td>${u.investCoin}</td>
+    $('#unmatchedBody').innerHTML = um.map(u => {
+      const distSign = u.distancePct >= 0 ? '+' : '';
+      const distTag = u.distancePct >= 0 ? 'otm' : 'itm';
+      return `<tr>
+      <td><span class="tag ${u.type.toLowerCase()}">${u.type}</span></td>
       <td>${fmtStrike(u.strike)}</td>
       <td>${u.expiry}</td>
       <td>${u.daysLabel}</td>
+      <td><span class="tag ${distTag}">${distSign}${u.distancePct.toFixed(1)}%</span></td>
       <td>${(u.dualAPR * 100).toFixed(2)}%</td>
-      <td style="font-size:.7rem;color:var(--text2)">${u.optionSymbol}</td>
+      <td style="font-size:.7rem;color:var(--text2)">${u.deribitSymbol}</td>
       <td style="color:var(--red)">${u.reason}</td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   } else {
     umSec.style.display = 'none';
   }
+}
 
-  // charts
-  renderBarChart(rows);
-  renderScatterChart(rows);
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmtNum(v) {
+  return Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtStrike(v) {
-  return Number(v) === Math.floor(Number(v)) ? Number(v).toLocaleString() : Number(v).toLocaleString(undefined, {maximumFractionDigits: 2});
+  const n = Number(v);
+  return n === Math.floor(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function spreadClass(pct) {
-  if (pct < 15) return 'low';
-  if (pct <= 20) return 'mid';
-  return 'high';
-}
-
-function liqClass(notional) {
-  if (notional >= 50000) return 'liq-high';
-  if (notional >= 10000) return 'liq-mid';
-  if (notional > 0) return 'liq-low';
-  return 'liq-none';
-}
-
-function fmtNotional(v) {
-  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000) return '$' + (v / 1000).toFixed(1) + 'K';
-  if (v > 0) return '$' + v.toFixed(0);
-  return '—';
-}
-
-// ── Charts ──────────────────────────────────────────────────────────────────
-function renderBarChart(rows) {
-  const ctx = $('#barChart');
-  if (barChart) barChart.destroy();
-
-  // pick top 20 by spread to keep chart readable
-  const display = rows.slice().sort((a, b) => b.spreadPct - a.spreadPct).slice(0, 20);
-  const labels = display.map(r => `${r.type[0]}|${fmtStrike(r.strike)}|${r.daysLabel}`);
-
-  barChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: '双币APR',
-          data: display.map(r => +(r.dualAPR * 100).toFixed(2)),
-          backgroundColor: '#818cf8aa',
-          borderColor: '#818cf8',
-          borderWidth: 1,
-        },
-        {
-          label: '期权APR(净)',
-          data: display.map(r => +(r.optionAPRNet * 100).toFixed(2)),
-          backgroundColor: '#4ade80aa',
-          borderColor: '#4ade80',
-          borderWidth: 1,
-        },
-        {
-          label: '手续费APR',
-          data: display.map(r => +(r.feeAPR * 100).toFixed(2)),
-          backgroundColor: '#f8717166',
-          borderColor: '#f87171',
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%',
-          },
-        },
-      },
-      scales: {
-        y: {
-          title: { display: true, text: 'APR (%)' },
-          grid: { color: '#2a2d3a' },
-        },
-        x: {
-          ticks: { maxRotation: 60, font: { size: 10 } },
-          grid: { display: false },
-        },
-      },
-    },
-  });
-}
-
-function renderScatterChart(rows) {
-  const ctx = $('#scatterChart');
-  if (scatterChart) scatterChart.destroy();
-
-  const calls = rows.filter(r => r.type === 'CALL').map(r => ({ x: r.days, y: r.spreadPct }));
-  const puts = rows.filter(r => r.type === 'PUT').map(r => ({ x: r.days, y: r.spreadPct }));
-
-  scatterChart = new Chart(ctx, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: 'CALL (高卖)',
-          data: calls,
-          backgroundColor: '#818cf8cc',
-          borderColor: '#818cf8',
-          pointRadius: 5,
-        },
-        {
-          label: 'PUT (低买)',
-          data: puts,
-          backgroundColor: '#60a5facc',
-          borderColor: '#60a5fa',
-          pointRadius: 5,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.parsed.x.toFixed(1)}D → ${ctx.parsed.y.toFixed(1)}%`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          title: { display: true, text: '到期天数' },
-          grid: { color: '#2a2d3a' },
-        },
-        y: {
-          title: { display: true, text: '抽成 (%)' },
-          grid: { color: '#2a2d3a' },
-        },
-      },
-    },
-  });
-}
-
-// ── Status ──────────────────────────────────────────────────────────────────
 function setStatus(type, msg) {
   const bar = $('#statusBar');
   bar.className = 'status-bar ' + type;
   $('#statusText').textContent = msg;
 }
 
-// ── Position Management ─────────────────────────────────────────────────────
+// ── Position Management (共享 localStorage) ─────────────────────────────────
 
 function getPositions() {
   try { return JSON.parse(localStorage.getItem('positions') || '[]'); }
@@ -742,49 +599,38 @@ function savePositions(positions) {
   localStorage.setItem('positions', JSON.stringify(positions));
 }
 
-// 从合约符号解析到期日，如 ETH-260327-2000-P → 2026-03-27
 function parseExpiryFromSymbol(symbol) {
+  // Deribit 格式: ETH-27MAR26-2000-P
   const parts = symbol.split('-');
   if (parts.length < 3) return null;
-  const dateStr = parts[1]; // YYMMDD
-  if (dateStr.length !== 6) return null;
-  const yy = dateStr.substring(0, 2);
-  const mm = dateStr.substring(2, 4);
-  const dd = dateStr.substring(4, 6);
-  return new Date(2000 + parseInt(yy), parseInt(mm) - 1, parseInt(dd));
+  const dateStr = parts[1];
+  // 尝试 Deribit 格式 (27MAR26)
+  const deribitMatch = dateStr.match(/^(\d{1,2})([A-Z]{3})(\d{2})$/);
+  if (deribitMatch) {
+    const months = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+    const dd = parseInt(deribitMatch[1]);
+    const mm = months[deribitMatch[2]];
+    const yy = parseInt(deribitMatch[3]);
+    if (mm !== undefined) return new Date(2000 + yy, mm, dd);
+  }
+  // 币安格式 (YYMMDD)
+  if (dateStr.length === 6 && /^\d{6}$/.test(dateStr)) {
+    const yy = parseInt(dateStr.substring(0, 2));
+    const mm = parseInt(dateStr.substring(2, 4));
+    const dd = parseInt(dateStr.substring(4, 6));
+    return new Date(2000 + yy, mm - 1, dd);
+  }
+  return null;
 }
 
-// 从合约符号解析币种
 function parseCoinFromSymbol(symbol) {
   return symbol.split('-')[0] || '';
 }
 
-// 构建合约符号（从对比表格行数据）
-function buildSymbol(r) {
-  return r.optionSymbol || `${currentCoin}-${r.expiry.replace(/-/g, '').substring(2)}-${r.strike}-${r.type === 'CALL' ? 'C' : 'P'}`;
-}
-
-// 加载持仓中缺失的币种 tickers
-async function loadMissingTickers() {
-  const positions = getPositions();
-  const neededCoins = new Set();
-  positions.forEach(p => {
-    const coin = parseCoinFromSymbol(p.symbol);
-    if (coin && !allTickers[p.symbol]) neededCoins.add(coin);
-  });
-  for (const coin of neededCoins) {
-    try {
-      const res = await fetch(`/api/options-tickers?coin=${coin}`);
-      const j = await res.json();
-      if (j.ok && j.tickers) Object.assign(allTickers, j.tickers);
-    } catch(_) {}
-  }
-}
-
-// 打开建仓弹窗
 function openPositionModal(symbol, bidPrice) {
+  $('#posSource').value = 'deribit';
   $('#posSymbol').value = symbol || '';
-  $('#posSellPrice').value = bidPrice ? Number(bidPrice).toFixed(2) : '';
+  $('#posSellPrice').value = bidPrice ? Number(bidPrice).toFixed(6) : '';
   $('#posQty').value = '';
   $('#posDate').value = new Date().toISOString().split('T')[0];
   $('#posModal').classList.remove('hidden');
@@ -796,8 +642,8 @@ function closeModal() {
   $('#posModal').classList.add('hidden');
 }
 
-// 保存持仓
 function savePosition() {
+  const source = $('#posSource').value;
   const symbol = $('#posSymbol').value.trim().toUpperCase();
   const sellPrice = parseFloat($('#posSellPrice').value);
   const qty = parseFloat($('#posQty').value);
@@ -815,13 +661,13 @@ function savePosition() {
     sellPrice,
     qty,
     openDate: date,
+    source: source,
   });
   savePositions(positions);
   closeModal();
   renderPositions();
 }
 
-// 删除持仓
 function deletePosition(id) {
   if (!confirm('确定删除此持仓记录？')) return;
   const positions = getPositions().filter(p => p.id !== id);
@@ -829,7 +675,6 @@ function deletePosition(id) {
   renderPositions();
 }
 
-// 渲染持仓面板
 function renderPositions() {
   const positions = getPositions();
   const countEl = $('#posCount');
@@ -843,76 +688,29 @@ function renderPositions() {
 
   const now = new Date();
   const rows = positions.map(p => {
-    const ticker = allTickers[p.symbol];
-    const askPrice = ticker ? parseFloat(ticker.askPrice) : null;
     const expiry = parseExpiryFromSymbol(p.symbol);
     const openDate = new Date(p.openDate);
-
-    // 剩余天数
     const daysLeft = expiry ? Math.max(0, Math.ceil((expiry - now) / 86400000)) : null;
-    // 已持有天数
     const daysHeld = Math.max(1, Math.ceil((now - openDate) / 86400000));
+    const source = p.source || 'binance';
 
-    // 计算
-    let earnedPct = null, earnedUsd = null, holdApr = null, closeApr = null, signal = '';
-
-    if (askPrice !== null) {
-      earnedPct = (p.sellPrice - askPrice) / p.sellPrice * 100;
-      earnedUsd = (p.sellPrice - askPrice) * p.qty;
-
-      // 持有年化：继续持有到期，剩余可赚 = askPrice，年化 = (askPrice/sellPrice) × (365/剩余天数)
-      if (daysLeft !== null && daysLeft > 0) {
-        holdApr = (askPrice / p.sellPrice) * (365 / daysLeft) * 100;
-      }
-
-      // 平仓年化：已赚利润 / 卖出价 × (365 / 已持有天数)
-      if (daysHeld > 0) {
-        closeApr = (earnedPct / 100) * (365 / daysHeld) * 100;
-      }
-
-      // 信号判断
-      if (earnedPct < 0) {
-        signal = '<span class="signal watch">⚪ 观察</span>';
-      } else if (earnedPct >= 80) {
-        signal = '<span class="signal strong-close">🔴 强烈建议平仓</span>';
-      } else if (earnedPct >= 50 && daysLeft !== null && daysLeft >= 10) {
-        signal = '<span class="signal suggest-close">🟡 建议平仓再开</span>';
-      } else if (closeApr !== null && holdApr !== null && closeApr > holdApr && earnedPct > 0) {
-        signal = '<span class="signal suggest-close">🟡 平仓更优</span>';
-      } else if (daysLeft !== null && daysLeft <= 2 && earnedPct > 0) {
-        signal = '<span class="signal hold">🟢 持有到期</span>';
-      } else {
-        signal = '<span class="signal watch">⚪ 观察</span>';
-      }
-    }
-
-    return { ...p, askPrice, expiry, daysLeft, daysHeld, earnedPct, earnedUsd, holdApr, closeApr, signal };
+    return { ...p, expiry, daysLeft, daysHeld, source };
   });
-
-  const fmtPct = v => v !== null ? v.toFixed(1) + '%' : '—';
-  const fmtUsd = v => v !== null ? (v >= 0 ? '+' : '') + '$' + v.toFixed(2) : '—';
-  const pctColor = v => v === null ? 'var(--text2)' : v >= 0 ? 'var(--green)' : 'var(--red)';
-  const aprFmt = v => v !== null ? v.toFixed(1) + '%' : '—';
 
   contentEl.innerHTML = `
     <div style="overflow-x:auto">
     <table class="pos-table">
       <thead><tr>
-        <th>合约</th><th>卖出价</th><th>数量</th><th>当前Ask</th>
-        <th>已赚%</th><th>已赚$</th><th>剩余天数</th>
-        <th>持有年化</th><th>平仓年化</th><th>信号</th><th>操作</th>
+        <th>来源</th><th>合约</th><th>卖出价</th><th>数量</th>
+        <th>剩余天数</th><th>已持有</th><th>操作</th>
       </tr></thead>
       <tbody>${rows.map(r => `<tr>
+        <td><span class="tag" style="background:${r.source === 'deribit' ? '#fb923c22' : '#818cf822'};color:${r.source === 'deribit' ? 'var(--orange)' : 'var(--purple)'}">${r.source === 'deribit' ? 'Deribit' : '币安'}</span></td>
         <td style="font-size:.7rem">${r.symbol}</td>
-        <td>${r.sellPrice.toFixed(2)}</td>
+        <td>${r.sellPrice}</td>
         <td>${r.qty}</td>
-        <td>${r.askPrice !== null ? r.askPrice.toFixed(2) : '<span style="color:var(--text2)">—</span>'}</td>
-        <td style="color:${pctColor(r.earnedPct)}">${fmtPct(r.earnedPct)}</td>
-        <td style="color:${pctColor(r.earnedUsd)}">${fmtUsd(r.earnedUsd)}</td>
         <td>${r.daysLeft !== null ? r.daysLeft + '天' : '—'}</td>
-        <td>${aprFmt(r.holdApr)}</td>
-        <td>${aprFmt(r.closeApr)}</td>
-        <td>${r.signal}</td>
+        <td>${r.daysHeld}天</td>
         <td><button class="btn-sm danger" onclick="deletePosition('${r.id}')">删除</button></td>
       </tr>`).join('')}</tbody>
     </table>
