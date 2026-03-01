@@ -282,6 +282,7 @@ tr:hover{background:#ffffff06}
         <th data-key="dualAPR">双币APR <span class="arrow"></span></th>
         <th data-key="deribitBid">Deribit Bid <span class="arrow"></span></th>
         <th data-key="deribitAPRNet">Deribit APR(净) <span class="arrow"></span></th>
+        <th data-key="breakeven">盈亏平衡 <span class="arrow"></span></th>
         <th data-key="diffAPR">APR差值 <span class="arrow"></span></th>
         <th data-key="extraProfit">10万U额外利润 <span class="arrow"></span></th>
         <th>Deribit合约 <span class="arrow"></span></th>
@@ -540,6 +541,7 @@ function render() {
     <td>${(r.dualAPR * 100).toFixed(2)}%</td>
     <td>${r.deribitBid.toFixed(6)} <span style="font-size:.65rem;color:var(--text2)">($${r.deribitBidUSD.toFixed(2)})</span></td>
     <td style="color:var(--orange)">${(r.deribitAPRNet * 100).toFixed(2)}%</td>
+    <td style="color:${r.type === 'PUT' ? (r.breakevenPct < 0 ? 'var(--green)' : 'var(--red)') : (r.breakevenPct > 0 ? 'var(--green)' : 'var(--red)')}">${fmtStrike(r.breakeven)} <span style="font-size:.65rem;opacity:.7">(${r.breakevenPct >= 0 ? '+' : ''}${r.breakevenPct.toFixed(1)}%)</span></td>
     <td style="color:${diffColor};font-weight:600">${r.diffAPR >= 0 ? '+' : ''}${(r.diffAPR * 100).toFixed(2)}%</td>
     <td class="profit" style="color:${extraColor}">${r.extraProfit >= 0 ? '+' : ''}$${r.extraProfit.toFixed(0)}</td>
     <td style="font-size:.68rem;color:var(--text2)">${r.deribitSymbol}</td>

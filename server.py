@@ -249,6 +249,13 @@ def compare_deribit(coin: str) -> dict:
         diff_apr = deribit_apr_net - dual_apr
         spread_pct = (diff_apr / deribit_apr_net * 100) if deribit_apr_net > 0 else 0
 
+        # 盈亏平衡价（基于扣费后的 net_bid）
+        if opt_type == "PUT":
+            breakeven = strike - net_bid
+        else:
+            breakeven = strike + net_bid
+        breakeven_pct = (breakeven - spot) / spot * 100 if spot > 0 else 0
+
         period = days / 365
         dual_profit = invest_amount * dual_apr * period
         deribit_profit = invest_amount * deribit_apr_net * period
@@ -273,6 +280,8 @@ def compare_deribit(coin: str) -> dict:
             "diffAPR": round(diff_apr, 6),
             "extraProfit": round(extra_profit, 2),
             "spreadPct": round(spread_pct, 2),
+            "breakeven": round(breakeven, 2),
+            "breakevenPct": round(breakeven_pct, 2),
         })
 
     diffs = [r["diffAPR"] for r in results]
