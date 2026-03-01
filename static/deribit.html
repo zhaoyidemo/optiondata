@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deribit CALL 期权 — BTC / ETH</title>
+<title>Deribit 期权 — BTC / ETH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -113,6 +113,8 @@ tr:hover{background:#ffffff06}
 .tag{
   display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600;
 }
+.tag.call{background:#818cf822;color:var(--purple)}
+.tag.put{background:#60a5fa22;color:var(--blue)}
 .tag.otm{background:#4ade8022;color:var(--green)}
 .tag.itm{background:#f8717122;color:var(--red)}
 
@@ -189,7 +191,7 @@ tr:hover{background:#ffffff06}
 </nav>
 
 <div class="header">
-  <h1>Deribit CALL 期权</h1>
+  <h1>Deribit 期权</h1>
   <div class="spot">
     <span id="coinLabel">ETH</span>/USDT 现货: <b id="spotPrice">—</b>
     &nbsp;·&nbsp; Deribit指数: <b class="deribit-idx" id="deribitIndex">—</b>
@@ -207,6 +209,12 @@ tr:hover{background:#ffffff06}
   <div class="pill-group" id="coinGroup">
     <button class="pill active" data-coin="ETH">ETH</button>
     <button class="pill" data-coin="BTC">BTC</button>
+  </div>
+  <label>类型</label>
+  <div class="pill-group" id="typeGroup">
+    <button class="pill active" data-type="ALL">全部</button>
+    <button class="pill" data-type="CALL">CALL</button>
+    <button class="pill" data-type="PUT">PUT</button>
   </div>
   <label>期限</label>
   <div class="pill-group" id="termGroup">
@@ -231,7 +239,7 @@ tr:hover{background:#ffffff06}
 
 <!-- Stats -->
 <div class="stats">
-  <div class="stat-card"><div class="label">CALL 合约数</div><div class="value purple" id="statCount">—</div></div>
+  <div class="stat-card"><div class="label">合约数</div><div class="value purple" id="statCount">—</div></div>
   <div class="stat-card"><div class="label">最近到期</div><div class="value yellow" id="statNearest">—</div></div>
   <div class="stat-card"><div class="label">平均卖出APR</div><div class="value green" id="statAvgAPR">—</div></div>
   <div class="stat-card"><div class="label">最高卖出APR</div><div class="value orange" id="statMaxAPR">—</div></div>
@@ -243,6 +251,7 @@ tr:hover{background:#ffffff06}
   <table id="dataTable">
     <thead>
       <tr>
+        <th data-key="type">类型 <span class="arrow"></span></th>
         <th data-key="strike">行权价 <span class="arrow"></span></th>
         <th data-key="expiry">到期日 <span class="arrow"></span></th>
         <th data-key="days">天数 <span class="arrow"></span></th>
@@ -304,6 +313,7 @@ tr:hover{background:#ffffff06}
 <script>
 // ── State ───────────────────────────────────────────────────────────────────
 let currentCoin = 'ETH';
+let filterType = 'ALL';
 let filterDaysMin = 0;
 let filterDaysMax = 0;
 let sortKey = 'deribitAPRNet';
@@ -326,6 +336,16 @@ $('#coinGroup').addEventListener('click', (e) => {
   btn.classList.add('active');
   currentCoin = btn.dataset.coin;
   loadData();
+});
+
+// ── Type pills ──────────────────────────────────────────────────────────────
+$('#typeGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#typeGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterType = btn.dataset.type;
+  render();
 });
 
 // ── Term pills ──────────────────────────────────────────────────────────────
@@ -384,13 +404,13 @@ $$('#dataTable th').forEach(th => {
 
 // ── Data loading ────────────────────────────────────────────────────────────
 async function loadData() {
-  setStatus('loading', `正在加载 ${currentCoin} Deribit CALL 期权…`);
+  setStatus('loading', `正在加载 ${currentCoin} Deribit 期权…`);
   try {
     const res = await fetch(`/api/deribit-compare?coin=${currentCoin}`);
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Unknown error');
     rawData = j.data;
-    setStatus('ok', `${currentCoin} Deribit 数据加载完成 · ${rawData.results.length} 个 CALL 合约`);
+    setStatus('ok', `${currentCoin} Deribit 数据加载完成 · ${rawData.results.length} 个合约`);
     render();
     renderPositions();
   } catch (e) {
@@ -409,6 +429,7 @@ function render() {
 
   // filter
   let rows = rawData.results.slice();
+  if (filterType !== 'ALL') rows = rows.filter(r => r.type === filterType);
   if (filterDaysMax > 0) rows = rows.filter(r => r.days >= filterDaysMin && r.days <= filterDaysMax);
 
   // sort
@@ -444,9 +465,12 @@ function render() {
   tbody.innerHTML = rows.map(r => {
     const distTag = r.distancePct >= 0 ? 'otm' : 'itm';
     const distSign = r.distancePct >= 0 ? '+' : '';
-    const beColor = r.breakevenPct > 0 ? 'var(--green)' : 'var(--red)';
+    const beColor = r.type === 'PUT'
+      ? (r.breakevenPct < 0 ? 'var(--green)' : 'var(--red)')
+      : (r.breakevenPct > 0 ? 'var(--green)' : 'var(--red)');
     const beSign = r.breakevenPct >= 0 ? '+' : '';
     return `<tr>
+    <td><span class="tag ${r.type.toLowerCase()}">${r.type}</span></td>
     <td>${fmtStrike(r.strike)}</td>
     <td>${r.expiry}</td>
     <td>${r.daysLabel}</td>

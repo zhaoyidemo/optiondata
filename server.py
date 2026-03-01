@@ -225,7 +225,7 @@ def compare_deribit(coin: str) -> dict:
 
     for name, ticker in deribit_tickers.items():
         parsed = _parse_deribit_instrument(name)
-        if not parsed or parsed["coin"] != coin or parsed["option_type"] != "CALL":
+        if not parsed or parsed["coin"] != coin:
             continue
 
         bid_coin = float(ticker.get("bid_price") or 0)
@@ -244,19 +244,24 @@ def compare_deribit(coin: str) -> dict:
         fee = min(0.0003 * deribit_index, 0.125 * bid_usd)
         net_bid = bid_usd - fee
 
-        # CALL APR
-        apr_gross = (bid_usd / deribit_index) * (365 / days)
-        apr_net = (net_bid / deribit_index) * (365 / days)
+        opt_type = parsed["option_type"]
 
-        # 盈亏平衡价（扣费后）
-        breakeven = strike + net_bid
+        if opt_type == "PUT":
+            apr_gross = (bid_usd / strike) * (365 / days)
+            apr_net = (net_bid / strike) * (365 / days)
+            breakeven = strike - net_bid
+            distance_pct = (spot - strike) / spot * 100 if spot > 0 else 0
+        else:
+            apr_gross = (bid_usd / deribit_index) * (365 / days)
+            apr_net = (net_bid / deribit_index) * (365 / days)
+            breakeven = strike + net_bid
+            distance_pct = (strike - spot) / spot * 100 if spot > 0 else 0
+
         breakeven_pct = (breakeven - spot) / spot * 100 if spot > 0 else 0
-
-        # 距离%（CALL: 正=虚值OTM）
-        distance_pct = (strike - spot) / spot * 100 if spot > 0 else 0
 
         results.append({
             "deribitSymbol": name,
+            "type": opt_type,
             "strike": strike,
             "expiry": parsed["expiry_date"],
             "days": days,
