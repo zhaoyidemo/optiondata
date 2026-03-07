@@ -119,6 +119,22 @@ tr:hover{background:#ffffff06}
 
 .note{font-size:.7rem;color:var(--text2);text-align:center;padding:20px}
 
+/* tab bar */
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.tab-btn{
+  padding:10px 24px;font-size:.85rem;color:var(--text2);
+  background:transparent;border:1px solid transparent;border-bottom:none;
+  border-radius:6px 6px 0 0;cursor:pointer;font-family:inherit;
+  position:relative;top:1px;transition:all .15s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--green);background:var(--surface);border-color:var(--border)}
+
+/* combo panel */
+.combo-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.combo-filters label{font-size:.75rem;color:var(--text2);margin-right:2px}
+.truncate-note{text-align:center;padding:10px;font-size:.75rem;color:var(--yellow);background:#fbbf2411;border-radius:6px;margin-top:8px}
+
 /* position panel */
 .pos-section{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
@@ -206,6 +222,15 @@ tr:hover{background:#ffffff06}
   <span class="dot"></span> <span id="statusText">正在加载…</span>
 </div>
 
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="single">单腿行情</button>
+  <button class="tab-btn" data-tab="combo">组合策略</button>
+</div>
+
+<!-- Single Leg Panel -->
+<div id="panelSingle">
+
 <!-- Filters -->
 <div class="filters">
   <label>币种</label>
@@ -273,6 +298,57 @@ tr:hover{background:#ffffff06}
   </table>
 </div>
 
+</div><!-- /panelSingle -->
+
+<!-- Combo Strategy Panel -->
+<div id="panelCombo" style="display:none">
+  <div class="combo-filters">
+    <label>策略</label>
+    <div class="pill-group" id="strategyGroup">
+      <button class="pill active" data-strategy="strangle">Strangle</button>
+      <button class="pill" data-strategy="straddle">Straddle</button>
+      <button class="pill" data-strategy="ironCondor">Iron Condor</button>
+      <button class="pill" data-strategy="bullPut">Bull Put</button>
+      <button class="pill" data-strategy="bearCall">Bear Call</button>
+    </div>
+    <label>币种</label>
+    <div class="pill-group" id="comboCoinGroup">
+      <button class="pill active" data-coin="ETH">ETH</button>
+      <button class="pill" data-coin="BTC">BTC</button>
+    </div>
+    <label>期限</label>
+    <div class="pill-group" id="comboTermGroup">
+      <button class="pill active" data-min="0" data-max="0">全部</button>
+      <button class="pill" data-min="0" data-max="3">0-3天</button>
+      <button class="pill" data-min="3" data-max="7">3-7天</button>
+      <button class="pill" data-min="7" data-max="14">7-14天</button>
+      <button class="pill" data-min="14" data-max="30">14-30天</button>
+      <button class="pill" data-min="30" data-max="90">30-90天</button>
+      <button class="pill" data-min="90" data-max="9999">90天+</button>
+    </div>
+    <label>排序</label>
+    <div class="pill-group" id="comboSortGroup">
+      <button class="pill active" data-sort="apr">组合APR↓</button>
+      <button class="pill" data-sort="safety">安全距离↓</button>
+      <button class="pill" data-sort="days">天数↑</button>
+    </div>
+  </div>
+
+  <div class="stats" id="comboStats">
+    <div class="stat-card"><div class="label">组合数量</div><div class="value purple" id="comboStatCount">—</div></div>
+    <div class="stat-card"><div class="label">最佳APR</div><div class="value green" id="comboStatBestApr">—</div></div>
+    <div class="stat-card"><div class="label">平均安全距离</div><div class="value yellow" id="comboStatAvgSafety">—</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="comboTable">
+      <thead id="comboThead"></thead>
+      <tbody id="comboTbody"></tbody>
+    </table>
+  </div>
+  <div id="comboTruncateNote" class="truncate-note" style="display:none"></div>
+</div>
+
 <!-- Position Panel -->
 <div class="pos-section" id="posSection">
   <h2>📊 我的持仓 <span class="pos-count" id="posCount">0</span></h2>
@@ -329,6 +405,12 @@ let rawRows = [];
 let spotPrice = 0;
 let allTickers = {};
 
+// ── Combo state ─────────────────────────────────────────────────────────────
+let activeTab = 'single';
+let currentStrategy = 'strangle';
+let comboFilterDaysMin = 0, comboFilterDaysMax = 0;
+let comboSortMode = 'apr';
+
 // ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -336,15 +418,19 @@ const $$ = (s) => document.querySelectorAll(s);
 // ── Init ────────────────────────────────────────────────────────────────────
 loadData();
 
-// ── Coin pills ──────────────────────────────────────────────────────────────
+// ── Coin pills (synced between tabs) ─────────────────────────────────────────
 $('#coinGroup').addEventListener('click', (e) => {
   const btn = e.target.closest('.pill');
   if (!btn) return;
-  $$('#coinGroup .pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentCoin = btn.dataset.coin;
-  loadData();
+  setCoinSync(btn.dataset.coin);
 });
+
+function setCoinSync(coin) {
+  currentCoin = coin;
+  $$('#coinGroup .pill').forEach(b => b.classList.toggle('active', b.dataset.coin === coin));
+  $$('#comboCoinGroup .pill').forEach(b => b.classList.toggle('active', b.dataset.coin === coin));
+  loadData();
+}
 
 // ── Type pills ──────────────────────────────────────────────────────────────
 $('#typeGroup').addEventListener('click', (e) => {
@@ -437,6 +523,7 @@ async function loadData() {
     $('#updateTime').textContent = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
     setStatus('ok', `${currentCoin} 期权数据加载完成 · ${rawRows.length} 个合约`);
     render();
+    if (activeTab === 'combo') renderCombo();
     renderPositions();
   } catch (e) {
     setStatus('err', '加载失败: ' + e.message);
@@ -758,6 +845,386 @@ function renderPositions() {
 }
 
 renderPositions();
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.tab;
+    $('#panelSingle').style.display = activeTab === 'single' ? '' : 'none';
+    $('#panelCombo').style.display = activeTab === 'combo' ? '' : 'none';
+    if (activeTab === 'combo') renderCombo();
+  });
+});
+
+// ── Combo coin pills ─────────────────────────────────────────────────────────
+$('#comboCoinGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  setCoinSync(btn.dataset.coin);
+});
+
+// ── Strategy pills ───────────────────────────────────────────────────────────
+$('#strategyGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#strategyGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentStrategy = btn.dataset.strategy;
+  renderCombo();
+});
+
+// ── Combo term pills ─────────────────────────────────────────────────────────
+$('#comboTermGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#comboTermGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  comboFilterDaysMin = parseInt(btn.dataset.min);
+  comboFilterDaysMax = parseInt(btn.dataset.max);
+  renderCombo();
+});
+
+// ── Combo sort pills ─────────────────────────────────────────────────────────
+$('#comboSortGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  $$('#comboSortGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  comboSortMode = btn.dataset.sort;
+  renderCombo();
+});
+
+// ── Combo Strategy Logic ─────────────────────────────────────────────────────
+
+function prepareLegs() {
+  const groups = {};
+  rawRows.forEach(r => {
+    if (r.bid <= 0) return;
+    if (!groups[r.expiryStr]) groups[r.expiryStr] = { puts: [], calls: [], daysLeft: r.daysLeft };
+    if (r.type === 'PUT') groups[r.expiryStr].puts.push(r);
+    else groups[r.expiryStr].calls.push(r);
+  });
+  for (const key of Object.keys(groups)) {
+    groups[key].puts.sort((a, b) => a.strike - b.strike);
+    groups[key].calls.sort((a, b) => a.strike - b.strike);
+  }
+  return groups;
+}
+
+function comboFee(legs) {
+  return spotPrice * 0.00024 * legs;
+}
+
+function safetyPct(strike, side) {
+  if (!spotPrice) return 0;
+  if (side === 'lower') return (spotPrice - strike) / spotPrice * 100;
+  return (strike - spotPrice) / spotPrice * 100;
+}
+
+function genStrangle(groups) {
+  const results = [];
+  for (const [expiry, g] of Object.entries(groups)) {
+    const otmPuts = g.puts.filter(p => p.strike < spotPrice);
+    const otmCalls = g.calls.filter(c => c.strike > spotPrice);
+    for (const p of otmPuts) {
+      for (const c of otmCalls) {
+        const totalPremium = p.bid + c.bid;
+        const fee = comboFee(2);
+        const netPremium = totalPremium - fee;
+        if (netPremium <= 0) continue;
+        const margin = Math.max(p.strike, spotPrice);
+        const days = Math.max(0.01, g.daysLeft);
+        const apr = netPremium / margin * 365 / days;
+        const safetyLower = safetyPct(p.strike, 'lower');
+        const safetyUpper = safetyPct(c.strike, 'upper');
+        const beLower = p.strike - totalPremium;
+        const beUpper = c.strike + totalPremium;
+        results.push({
+          type: 'strangle', expiry, days: g.daysLeft,
+          putStrike: p.strike, callStrike: c.strike,
+          putBid: p.bid, callBid: c.bid,
+          totalPremium, netPremium, apr,
+          safetyLower, safetyUpper,
+          beLower, beUpper,
+          safetyMin: Math.min(safetyLower, safetyUpper),
+        });
+      }
+    }
+  }
+  return results;
+}
+
+function genStraddle(groups) {
+  const results = [];
+  for (const [expiry, g] of Object.entries(groups)) {
+    const putMap = new Map(g.puts.map(p => [p.strike, p]));
+    for (const c of g.calls) {
+      const p = putMap.get(c.strike);
+      if (!p) continue;
+      const totalPremium = p.bid + c.bid;
+      const fee = comboFee(2);
+      const netPremium = totalPremium - fee;
+      if (netPremium <= 0) continue;
+      const margin = Math.max(c.strike, spotPrice);
+      const days = Math.max(0.01, g.daysLeft);
+      const apr = netPremium / margin * 365 / days;
+      const beLower = c.strike - totalPremium;
+      const beUpper = c.strike + totalPremium;
+      results.push({
+        type: 'straddle', expiry, days: g.daysLeft,
+        strike: c.strike,
+        putBid: p.bid, callBid: c.bid,
+        totalPremium, netPremium, apr,
+        beLower, beUpper,
+        safetyMin: 0,
+      });
+    }
+  }
+  return results;
+}
+
+function genBullPut(groups) {
+  const results = [];
+  for (const [expiry, g] of Object.entries(groups)) {
+    const puts = g.puts;
+    for (let i = 0; i < puts.length; i++) {
+      for (let j = i + 1; j < puts.length && j - i <= 3; j++) {
+        const buyPut = puts[i];   // lower strike = buy
+        const sellPut = puts[j];  // higher strike = sell
+        const fee = comboFee(2);
+        const netPremium = sellPut.bid - buyPut.ask - fee;
+        if (netPremium <= 0) continue;
+        const strikeWidth = sellPut.strike - buyPut.strike;
+        const maxLoss = strikeWidth - netPremium;
+        if (maxLoss <= 0) continue;
+        const days = Math.max(0.01, g.daysLeft);
+        const apr = netPremium / maxLoss * 365 / days;
+        const breakeven = sellPut.strike - netPremium;
+        results.push({
+          type: 'bullPut', expiry, days: g.daysLeft,
+          sellStrike: sellPut.strike, buyStrike: buyPut.strike,
+          netPremium, maxLoss, breakeven, apr,
+          safetyMin: safetyPct(sellPut.strike, 'lower'),
+        });
+      }
+    }
+  }
+  return results;
+}
+
+function genBearCall(groups) {
+  const results = [];
+  for (const [expiry, g] of Object.entries(groups)) {
+    const calls = g.calls;
+    for (let i = 0; i < calls.length; i++) {
+      for (let j = i + 1; j < calls.length && j - i <= 3; j++) {
+        const sellCall = calls[i];  // lower strike = sell
+        const buyCall = calls[j];   // higher strike = buy
+        const fee = comboFee(2);
+        const netPremium = sellCall.bid - buyCall.ask - fee;
+        if (netPremium <= 0) continue;
+        const strikeWidth = buyCall.strike - sellCall.strike;
+        const maxLoss = strikeWidth - netPremium;
+        if (maxLoss <= 0) continue;
+        const days = Math.max(0.01, g.daysLeft);
+        const apr = netPremium / maxLoss * 365 / days;
+        const breakeven = sellCall.strike + netPremium;
+        results.push({
+          type: 'bearCall', expiry, days: g.daysLeft,
+          sellStrike: sellCall.strike, buyStrike: buyCall.strike,
+          netPremium, maxLoss, breakeven, apr,
+          safetyMin: safetyPct(sellCall.strike, 'upper'),
+        });
+      }
+    }
+  }
+  return results;
+}
+
+function genIronCondor(groups) {
+  const results = [];
+  for (const [expiry, g] of Object.entries(groups)) {
+    // Generate top put spreads (sell high put, buy low put)
+    const putSpreads = [];
+    const puts = g.puts;
+    for (let i = 0; i < puts.length; i++) {
+      for (let j = i + 1; j < puts.length && j - i <= 3; j++) {
+        const buyP = puts[i], sellP = puts[j];
+        if (sellP.strike >= spotPrice) continue; // OTM puts only
+        const net = sellP.bid - buyP.ask;
+        if (net <= 0) continue;
+        putSpreads.push({ buyP, sellP, net, width: sellP.strike - buyP.strike });
+      }
+    }
+    putSpreads.sort((a, b) => b.net - a.net);
+    const topPuts = putSpreads.slice(0, 20);
+
+    // Generate top call spreads (sell low call, buy high call)
+    const callSpreads = [];
+    const calls = g.calls;
+    for (let i = 0; i < calls.length; i++) {
+      for (let j = i + 1; j < calls.length && j - i <= 3; j++) {
+        const sellC = calls[i], buyC = calls[j];
+        if (sellC.strike <= spotPrice) continue; // OTM calls only
+        const net = sellC.bid - buyC.ask;
+        if (net <= 0) continue;
+        callSpreads.push({ sellC, buyC, net, width: buyC.strike - sellC.strike });
+      }
+    }
+    callSpreads.sort((a, b) => b.net - a.net);
+    const topCalls = callSpreads.slice(0, 20);
+
+    let count = 0;
+    for (const ps of topPuts) {
+      for (const cs of topCalls) {
+        if (count > 500) break;
+        const fee = comboFee(4);
+        const netPremium = ps.net + cs.net - fee;
+        if (netPremium <= 0) continue;
+        const maxLoss = Math.max(ps.width, cs.width) - netPremium;
+        if (maxLoss <= 0) continue;
+        const days = Math.max(0.01, g.daysLeft);
+        const apr = netPremium / maxLoss * 365 / days;
+        results.push({
+          type: 'ironCondor', expiry, days: g.daysLeft,
+          buyPutStrike: ps.buyP.strike, sellPutStrike: ps.sellP.strike,
+          sellCallStrike: cs.sellC.strike, buyCallStrike: cs.buyC.strike,
+          netPremium, maxLoss, apr,
+          safetyLower: safetyPct(ps.sellP.strike, 'lower'),
+          safetyUpper: safetyPct(cs.sellC.strike, 'upper'),
+          safetyMin: Math.min(safetyPct(ps.sellP.strike, 'lower'), safetyPct(cs.sellC.strike, 'upper')),
+        });
+        count++;
+      }
+      if (count > 500) break;
+    }
+  }
+  return results;
+}
+
+// ── Combo Rendering ──────────────────────────────────────────────────────────
+
+const comboHeaders = {
+  strangle: ['Put行权价','Call行权价','到期日','天数','Put Bid','Call Bid','总权利金','安全区间','安全距离%(下/上)','盈亏平衡','组合APR'],
+  straddle: ['行权价','到期日','天数','Put Bid','Call Bid','总权利金','盈亏平衡(下/上)','组合APR'],
+  ironCondor: ['买P','卖P','卖C','买C','到期日','天数','净权利金','最大亏损','安全区间','组合APR'],
+  bullPut: ['卖P','买P','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR'],
+  bearCall: ['卖C','买C','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR'],
+};
+
+function renderCombo() {
+  if (!rawRows.length) return;
+  const groups = prepareLegs();
+
+  // Filter by days
+  const filtered = {};
+  for (const [expiry, g] of Object.entries(groups)) {
+    if (comboFilterDaysMax > 0 && (g.daysLeft < comboFilterDaysMin || g.daysLeft > comboFilterDaysMax)) continue;
+    filtered[expiry] = g;
+  }
+
+  let combos;
+  switch (currentStrategy) {
+    case 'strangle': combos = genStrangle(filtered); break;
+    case 'straddle': combos = genStraddle(filtered); break;
+    case 'ironCondor': combos = genIronCondor(filtered); break;
+    case 'bullPut': combos = genBullPut(filtered); break;
+    case 'bearCall': combos = genBearCall(filtered); break;
+    default: combos = [];
+  }
+
+  // Sort
+  if (comboSortMode === 'apr') combos.sort((a, b) => b.apr - a.apr);
+  else if (comboSortMode === 'safety') combos.sort((a, b) => b.safetyMin - a.safetyMin);
+  else if (comboSortMode === 'days') combos.sort((a, b) => a.days - b.days);
+
+  const totalCount = combos.length;
+  const truncated = combos.length > 200;
+  combos = combos.slice(0, 200);
+
+  // Stats
+  $('#comboStatCount').textContent = totalCount;
+  $('#comboStatBestApr').textContent = combos.length ? (combos.reduce((m, c) => Math.max(m, c.apr), 0) * 100).toFixed(1) + '%' : '—';
+  const avgSafety = combos.length ? combos.reduce((s, c) => s + c.safetyMin, 0) / combos.length : 0;
+  $('#comboStatAvgSafety').textContent = combos.length ? avgSafety.toFixed(1) + '%' : '—';
+
+  // Thead
+  const headers = comboHeaders[currentStrategy] || [];
+  $('#comboThead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+  // Tbody
+  $('#comboTbody').innerHTML = combos.map(c => {
+    switch (currentStrategy) {
+      case 'strangle': return `<tr>
+        <td>${fmtStrike(c.putStrike)}</td>
+        <td>${fmtStrike(c.callStrike)}</td>
+        <td>${c.expiry}</td>
+        <td>${Math.ceil(c.days)}天</td>
+        <td>${c.putBid.toFixed(2)}</td>
+        <td>${c.callBid.toFixed(2)}</td>
+        <td style="color:var(--yellow)">${c.totalPremium.toFixed(2)}</td>
+        <td>${fmtStrike(c.putStrike)} ~ ${fmtStrike(c.callStrike)}</td>
+        <td style="color:var(--green)">${c.safetyLower.toFixed(1)}% / ${c.safetyUpper.toFixed(1)}%</td>
+        <td style="color:var(--text2)">${fmtStrike(c.beLower)} ~ ${fmtStrike(c.beUpper)}</td>
+        <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+      </tr>`;
+      case 'straddle': return `<tr>
+        <td>${fmtStrike(c.strike)}</td>
+        <td>${c.expiry}</td>
+        <td>${Math.ceil(c.days)}天</td>
+        <td>${c.putBid.toFixed(2)}</td>
+        <td>${c.callBid.toFixed(2)}</td>
+        <td style="color:var(--yellow)">${c.totalPremium.toFixed(2)}</td>
+        <td style="color:var(--text2)">${fmtStrike(c.beLower)} / ${fmtStrike(c.beUpper)}</td>
+        <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+      </tr>`;
+      case 'ironCondor': return `<tr>
+        <td>${fmtStrike(c.buyPutStrike)}</td>
+        <td>${fmtStrike(c.sellPutStrike)}</td>
+        <td>${fmtStrike(c.sellCallStrike)}</td>
+        <td>${fmtStrike(c.buyCallStrike)}</td>
+        <td>${c.expiry}</td>
+        <td>${Math.ceil(c.days)}天</td>
+        <td style="color:var(--yellow)">${c.netPremium.toFixed(2)}</td>
+        <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
+        <td style="color:var(--green)">${fmtStrike(c.sellPutStrike)} ~ ${fmtStrike(c.sellCallStrike)}</td>
+        <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+      </tr>`;
+      case 'bullPut': return `<tr>
+        <td>${fmtStrike(c.sellStrike)}</td>
+        <td>${fmtStrike(c.buyStrike)}</td>
+        <td>${c.expiry}</td>
+        <td>${Math.ceil(c.days)}天</td>
+        <td style="color:var(--yellow)">${c.netPremium.toFixed(2)}</td>
+        <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
+        <td style="color:var(--text2)">${fmtStrike(c.breakeven)}</td>
+        <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+      </tr>`;
+      case 'bearCall': return `<tr>
+        <td>${fmtStrike(c.sellStrike)}</td>
+        <td>${fmtStrike(c.buyStrike)}</td>
+        <td>${c.expiry}</td>
+        <td>${Math.ceil(c.days)}天</td>
+        <td style="color:var(--yellow)">${c.netPremium.toFixed(2)}</td>
+        <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
+        <td style="color:var(--text2)">${fmtStrike(c.breakeven)}</td>
+        <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+      </tr>`;
+      default: return '';
+    }
+  }).join('');
+
+  // Truncation note
+  const noteEl = $('#comboTruncateNote');
+  if (truncated) {
+    noteEl.style.display = '';
+    noteEl.textContent = `共 ${totalCount} 条组合，仅显示前 200 条（按当前排序）`;
+  } else {
+    noteEl.style.display = 'none';
+  }
+}
 
 $('#posModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
