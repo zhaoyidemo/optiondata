@@ -135,6 +135,17 @@ tr:hover{background:#ffffff06}
 .combo-filters label{font-size:.75rem;color:var(--text2);margin-right:2px}
 .truncate-note{text-align:center;padding:10px;font-size:.75rem;color:var(--yellow);background:#fbbf2411;border-radius:6px;margin-top:8px}
 
+/* strategy description */
+.strategy-desc{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:16px 20px;margin-bottom:20px;font-size:.78rem;line-height:1.7;
+}
+.strategy-desc .desc-title{font-size:.85rem;font-weight:600;color:var(--green);margin-bottom:8px}
+.strategy-desc .desc-row{display:flex;gap:6px;color:var(--text2)}
+.strategy-desc .desc-row .desc-label{color:var(--text);min-width:70px;flex-shrink:0}
+.strategy-desc .desc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-top:6px}
+@media(max-width:640px){.strategy-desc .desc-grid{grid-template-columns:1fr}}
+
 /* position panel */
 .pos-section{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
@@ -333,6 +344,8 @@ tr:hover{background:#ffffff06}
       <button class="pill" data-sort="days">天数↑</button>
     </div>
   </div>
+
+  <div class="strategy-desc" id="strategyDesc"></div>
 
   <div class="stats" id="comboStats">
     <div class="stat-card"><div class="label">组合数量</div><div class="value purple" id="comboStatCount">—</div></div>
@@ -907,7 +920,7 @@ $('#comboSortGroup').addEventListener('click', (e) => {
 function prepareLegs() {
   const groups = {};
   rawRows.forEach(r => {
-    if (r.bid <= 0) return;
+    if (r.bid <= 0 && r.ask <= 0) return;
     if (!groups[r.expiryStr]) groups[r.expiryStr] = { puts: [], calls: [], daysLeft: r.daysLeft };
     if (r.type === 'PUT') groups[r.expiryStr].puts.push(r);
     else groups[r.expiryStr].calls.push(r);
@@ -932,8 +945,8 @@ function safetyPct(strike, side) {
 function genStrangle(groups) {
   const results = [];
   for (const [expiry, g] of Object.entries(groups)) {
-    const otmPuts = g.puts.filter(p => p.strike < spotPrice);
-    const otmCalls = g.calls.filter(c => c.strike > spotPrice);
+    const otmPuts = g.puts.filter(p => p.strike < spotPrice && p.bid > 0);
+    const otmCalls = g.calls.filter(c => c.strike > spotPrice && c.bid > 0);
     for (const p of otmPuts) {
       for (const c of otmCalls) {
         const totalPremium = p.bid + c.bid;
@@ -965,8 +978,9 @@ function genStrangle(groups) {
 function genStraddle(groups) {
   const results = [];
   for (const [expiry, g] of Object.entries(groups)) {
-    const putMap = new Map(g.puts.map(p => [p.strike, p]));
+    const putMap = new Map(g.puts.filter(p => p.bid > 0).map(p => [p.strike, p]));
     for (const c of g.calls) {
+      if (c.bid <= 0) continue;
       const p = putMap.get(c.strike);
       if (!p) continue;
       const totalPremium = p.bid + c.bid;
@@ -999,6 +1013,7 @@ function genBullPut(groups) {
       for (let j = i + 1; j < puts.length && j - i <= 3; j++) {
         const buyPut = puts[i];   // lower strike = buy
         const sellPut = puts[j];  // higher strike = sell
+        if (sellPut.bid <= 0 || buyPut.ask <= 0) continue;
         const fee = comboFee(2);
         const netPremium = sellPut.bid - buyPut.ask - fee;
         if (netPremium <= 0) continue;
@@ -1028,6 +1043,7 @@ function genBearCall(groups) {
       for (let j = i + 1; j < calls.length && j - i <= 3; j++) {
         const sellCall = calls[i];  // lower strike = sell
         const buyCall = calls[j];   // higher strike = buy
+        if (sellCall.bid <= 0 || buyCall.ask <= 0) continue;
         const fee = comboFee(2);
         const netPremium = sellCall.bid - buyCall.ask - fee;
         if (netPremium <= 0) continue;
@@ -1059,6 +1075,7 @@ function genIronCondor(groups) {
       for (let j = i + 1; j < puts.length && j - i <= 3; j++) {
         const buyP = puts[i], sellP = puts[j];
         if (sellP.strike >= spotPrice) continue; // OTM puts only
+        if (sellP.bid <= 0 || buyP.ask <= 0) continue;
         const net = sellP.bid - buyP.ask;
         if (net <= 0) continue;
         putSpreads.push({ buyP, sellP, net, width: sellP.strike - buyP.strike });
@@ -1074,6 +1091,7 @@ function genIronCondor(groups) {
       for (let j = i + 1; j < calls.length && j - i <= 3; j++) {
         const sellC = calls[i], buyC = calls[j];
         if (sellC.strike <= spotPrice) continue; // OTM calls only
+        if (sellC.bid <= 0 || buyC.ask <= 0) continue;
         const net = sellC.bid - buyC.ask;
         if (net <= 0) continue;
         callSpreads.push({ sellC, buyC, net, width: buyC.strike - sellC.strike });
@@ -1112,6 +1130,76 @@ function genIronCondor(groups) {
 
 // ── Combo Rendering ──────────────────────────────────────────────────────────
 
+const strategyDescriptions = {
+  strangle: {
+    title: 'Short Strangle — 卖出宽跨式',
+    legs: '卖出 OTM Put + 卖出 OTM Call（同到期日）',
+    outlook: '预期标的在安全区间内震荡，不会大涨或大跌',
+    maxProfit: '总权利金（Put Bid + Call Bid - 手续费）',
+    maxLoss: '无限（裸卖，标的大幅突破任一方向）',
+    margin: 'max(Put行权价, 现货价) — 取较大义务方的保证金',
+    breakeven: '下方 = Put行权价 - 总权利金 · 上方 = Call行权价 + 总权利金',
+    tips: '安全距离越大越安全，但权利金越低；短期限组合 APR 高但容错低',
+  },
+  straddle: {
+    title: 'Short Straddle — 卖出跨式',
+    legs: '卖出 ATM Put + 卖出 ATM Call（同到期日、同行权价）',
+    outlook: '预期标的在行权价附近窄幅波动，波动率下降',
+    maxProfit: '总权利金（Put Bid + Call Bid - 手续费）',
+    maxLoss: '无限（裸卖，标的大幅偏离行权价）',
+    margin: 'max(行权价, 现货价) — 无安全区间，风险高于 Strangle',
+    breakeven: '下方 = 行权价 - 总权利金 · 上方 = 行权价 + 总权利金',
+    tips: '权利金高于 Strangle，但没有安全区间缓冲，需严格止损',
+  },
+  ironCondor: {
+    title: 'Iron Condor — 铁鹰式',
+    legs: '买远Put + 卖近Put + 卖近Call + 买远Call（同到期日，4条腿）',
+    outlook: '预期标的在安全区间内震荡，类似 Strangle 但风险有限',
+    maxProfit: '净权利金 = 卖Put Bid + 卖Call Bid - 买Put Ask - 买Call Ask - 手续费',
+    maxLoss: 'max(Put价差宽度, Call价差宽度) - 净权利金 — 风险有限',
+    margin: '最大亏损金额（因买入保护腿，无需额外保证金）',
+    breakeven: '下方 = 卖Put行权价 - 净权利金 · 上方 = 卖Call行权价 + 净权利金',
+    tips: '风险有限适合新手；价差宽度越小杠杆越高但容错越低',
+  },
+  bullPut: {
+    title: 'Bull Put Spread — 牛市看跌价差',
+    legs: '卖出高行权价 Put + 买入低行权价 Put（同到期日）',
+    outlook: '看涨或中性偏多，预期标的不跌破卖出Put行权价',
+    maxProfit: '净权利金 = 卖Put Bid - 买Put Ask - 手续费',
+    maxLoss: '行权价差 - 净权利金 — 风险有限',
+    margin: '最大亏损金额',
+    breakeven: '卖Put行权价 - 净权利金',
+    tips: '方向性策略；卖出腿离现货越近权利金越高但风险越大',
+  },
+  bearCall: {
+    title: 'Bear Call Spread — 熊市看涨价差',
+    legs: '卖出低行权价 Call + 买入高行权价 Call（同到期日）',
+    outlook: '看跌或中性偏空，预期标的不涨破卖出Call行权价',
+    maxProfit: '净权利金 = 卖Call Bid - 买Call Ask - 手续费',
+    maxLoss: '行权价差 - 净权利金 — 风险有限',
+    margin: '最大亏损金额',
+    breakeven: '卖Call行权价 + 净权利金',
+    tips: '方向性策略；卖出腿离现货越近权利金越高但风险越大',
+  },
+};
+
+function renderStrategyDesc() {
+  const d = strategyDescriptions[currentStrategy];
+  if (!d) return;
+  $('#strategyDesc').innerHTML = `
+    <div class="desc-title">${d.title}</div>
+    <div class="desc-grid">
+      <div class="desc-row"><span class="desc-label">构成：</span>${d.legs}</div>
+      <div class="desc-row"><span class="desc-label">适用：</span>${d.outlook}</div>
+      <div class="desc-row"><span class="desc-label">最大盈利：</span>${d.maxProfit}</div>
+      <div class="desc-row"><span class="desc-label">最大亏损：</span>${d.maxLoss}</div>
+      <div class="desc-row"><span class="desc-label">保证金：</span>${d.margin}</div>
+      <div class="desc-row"><span class="desc-label">盈亏平衡：</span>${d.breakeven}</div>
+    </div>
+    <div style="margin-top:8px;color:var(--yellow);font-size:.73rem">💡 ${d.tips}</div>
+  `;
+}
+
 const comboHeaders = {
   strangle: [
     {label:'Put行权价',key:'putStrike'},{label:'Call行权价',key:'callStrike'},
@@ -1149,6 +1237,7 @@ const comboHeaders = {
 };
 
 function renderCombo() {
+  renderStrategyDesc();
   if (!rawRows.length) return;
   const groups = prepareLegs();
 
