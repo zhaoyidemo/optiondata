@@ -983,20 +983,29 @@ function genStraddle(groups) {
       if (c.bid <= 0) continue;
       const p = putMap.get(c.strike);
       if (!p) continue;
+      const strike = c.strike;
       const totalPremium = p.bid + c.bid;
       const fee = comboFee(2);
-      const netPremium = totalPremium - fee;
-      if (netPremium <= 0) continue;
-      const margin = Math.max(c.strike, spotPrice);
+      // 剥离内在价值，只用时间价值计算收益
+      const putIntrinsic = Math.max(0, strike - spotPrice);
+      const callIntrinsic = Math.max(0, spotPrice - strike);
+      const putTV = Math.max(0, p.bid - putIntrinsic);
+      const callTV = Math.max(0, c.bid - callIntrinsic);
+      const totalTV = putTV + callTV;
+      const netTV = totalTV - fee;
+      if (netTV <= 0) continue;
+      const margin = Math.max(strike, spotPrice);
       const days = Math.max(0.01, g.daysLeft);
-      const apr = netPremium / margin * 365 / days;
-      const beLower = c.strike - netPremium;
-      const beUpper = c.strike + netPremium;
+      const apr = netTV / margin * 365 / days;
+      // 盈亏平衡用实际收到的总权利金（含内在价值）
+      const netPremium = totalPremium - fee;
+      const beLower = strike - netPremium;
+      const beUpper = strike + netPremium;
       results.push({
         type: 'straddle', expiry, days: g.daysLeft,
-        strike: c.strike,
+        strike,
         putBid: p.bid, callBid: c.bid,
-        totalPremium, netPremium, apr,
+        totalPremium, totalTV, netTV, apr,
         beLower, beUpper,
         safetyMin: 0,
       });
@@ -1217,7 +1226,8 @@ const comboHeaders = {
   straddle: [
     {label:'行权价',key:'strike'},{label:'到期日',key:'expiry'},{label:'天数',key:'days'},
     {label:'Put Bid',key:'putBid'},{label:'Call Bid',key:'callBid'},
-    {label:'总权利金',key:'totalPremium'},{label:'盈亏平衡(下/上)',key:null},
+    {label:'总权利金',key:'totalPremium'},{label:'时间价值',key:'totalTV'},
+    {label:'盈亏平衡(下/上)',key:null},
     {label:'组合APR',key:'apr'},{label:'60万U利润',key:'_profit'},
   ],
   ironCondor: [
@@ -1329,7 +1339,8 @@ function renderComboTbody(combos, truncated, totalCount) {
         <td>${Math.ceil(c.days)}天</td>
         <td>${c.putBid.toFixed(2)}</td>
         <td>${c.callBid.toFixed(2)}</td>
-        <td style="color:var(--yellow)">${c.totalPremium.toFixed(2)}</td>
+        <td>${c.totalPremium.toFixed(2)}</td>
+        <td style="color:var(--green)">${c.totalTV.toFixed(2)}</td>
         <td style="color:var(--text2)">${fmtStrike(c.beLower)} / ${fmtStrike(c.beUpper)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
         ${profitTd}
