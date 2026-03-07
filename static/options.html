@@ -1107,11 +1107,11 @@ function genIronCondor(groups) {
 // ── Combo Rendering ──────────────────────────────────────────────────────────
 
 const comboHeaders = {
-  strangle: ['Put行权价','Call行权价','到期日','天数','Put Bid','Call Bid','总权利金','安全区间','安全距离%(下/上)','盈亏平衡','组合APR'],
-  straddle: ['行权价','到期日','天数','Put Bid','Call Bid','总权利金','盈亏平衡(下/上)','组合APR'],
-  ironCondor: ['买P','卖P','卖C','买C','到期日','天数','净权利金','最大亏损','安全区间','组合APR'],
-  bullPut: ['卖P','买P','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR'],
-  bearCall: ['卖C','买C','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR'],
+  strangle: ['Put行权价','Call行权价','到期日','天数','Put Bid','Call Bid','总权利金','安全区间','安全距离%(下/上)','盈亏平衡','组合APR','60万U利润'],
+  straddle: ['行权价','到期日','天数','Put Bid','Call Bid','总权利金','盈亏平衡(下/上)','组合APR','60万U利润'],
+  ironCondor: ['买P','卖P','卖C','买C','到期日','天数','净权利金','最大亏损','安全区间','组合APR','60万U利润'],
+  bullPut: ['卖P','买P','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR','60万U利润'],
+  bearCall: ['卖C','买C','到期日','天数','净权利金','最大亏损','盈亏平衡','组合APR','60万U利润'],
 };
 
 function renderCombo() {
@@ -1155,7 +1155,10 @@ function renderCombo() {
   $('#comboThead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
 
   // Tbody
+  const comboProfit = c => Math.round(c.apr * 600000 * Math.max(0.01, c.days) / 365);
   $('#comboTbody').innerHTML = combos.map(c => {
+    const profitVal = comboProfit(c);
+    const profitTd = `<td style="color:var(--yellow)">${profitVal > 0 ? '$' + profitVal.toLocaleString() : '—'}</td>`;
     switch (currentStrategy) {
       case 'strangle': return `<tr>
         <td>${fmtStrike(c.putStrike)}</td>
@@ -1169,6 +1172,7 @@ function renderCombo() {
         <td style="color:var(--green)">${c.safetyLower.toFixed(1)}% / ${c.safetyUpper.toFixed(1)}%</td>
         <td style="color:var(--text2)">${fmtStrike(c.beLower)} ~ ${fmtStrike(c.beUpper)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+        ${profitTd}
       </tr>`;
       case 'straddle': return `<tr>
         <td>${fmtStrike(c.strike)}</td>
@@ -1179,6 +1183,7 @@ function renderCombo() {
         <td style="color:var(--yellow)">${c.totalPremium.toFixed(2)}</td>
         <td style="color:var(--text2)">${fmtStrike(c.beLower)} / ${fmtStrike(c.beUpper)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+        ${profitTd}
       </tr>`;
       case 'ironCondor': return `<tr>
         <td>${fmtStrike(c.buyPutStrike)}</td>
@@ -1191,6 +1196,7 @@ function renderCombo() {
         <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
         <td style="color:var(--green)">${fmtStrike(c.sellPutStrike)} ~ ${fmtStrike(c.sellCallStrike)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+        ${profitTd}
       </tr>`;
       case 'bullPut': return `<tr>
         <td>${fmtStrike(c.sellStrike)}</td>
@@ -1201,6 +1207,7 @@ function renderCombo() {
         <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
         <td style="color:var(--text2)">${fmtStrike(c.breakeven)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+        ${profitTd}
       </tr>`;
       case 'bearCall': return `<tr>
         <td>${fmtStrike(c.sellStrike)}</td>
@@ -1211,6 +1218,7 @@ function renderCombo() {
         <td style="color:var(--red)">${c.maxLoss.toFixed(2)}</td>
         <td style="color:var(--text2)">${fmtStrike(c.breakeven)}</td>
         <td style="color:var(--green);font-weight:600">${(c.apr * 100).toFixed(1)}%</td>
+        ${profitTd}
       </tr>`;
       default: return '';
     }
