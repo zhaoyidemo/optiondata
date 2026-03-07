@@ -958,8 +958,8 @@ function genStrangle(groups) {
         const apr = netPremium / margin * 365 / days;
         const safetyLower = safetyPct(p.strike, 'lower');
         const safetyUpper = safetyPct(c.strike, 'upper');
-        const beLower = p.strike - totalPremium;
-        const beUpper = c.strike + totalPremium;
+        const beLower = p.strike - netPremium;
+        const beUpper = c.strike + netPremium;
         results.push({
           type: 'strangle', expiry, days: g.daysLeft,
           putStrike: p.strike, callStrike: c.strike,
@@ -990,8 +990,8 @@ function genStraddle(groups) {
       const margin = Math.max(c.strike, spotPrice);
       const days = Math.max(0.01, g.daysLeft);
       const apr = netPremium / margin * 365 / days;
-      const beLower = c.strike - totalPremium;
-      const beUpper = c.strike + totalPremium;
+      const beLower = c.strike - netPremium;
+      const beUpper = c.strike + netPremium;
       results.push({
         type: 'straddle', expiry, days: g.daysLeft,
         strike: c.strike,
@@ -1020,13 +1020,14 @@ function genBullPut(groups) {
         const strikeWidth = sellPut.strike - buyPut.strike;
         const maxLoss = strikeWidth - netPremium;
         if (maxLoss <= 0) continue;
+        const margin = sellPut.strike;
         const days = Math.max(0.01, g.daysLeft);
-        const apr = netPremium / maxLoss * 365 / days;
+        const apr = netPremium / margin * 365 / days;
         const breakeven = sellPut.strike - netPremium;
         results.push({
           type: 'bullPut', expiry, days: g.daysLeft,
           sellStrike: sellPut.strike, buyStrike: buyPut.strike,
-          netPremium, maxLoss, breakeven, apr,
+          netPremium, maxLoss, breakeven, apr, margin,
           safetyMin: safetyPct(sellPut.strike, 'lower'),
         });
       }
@@ -1050,13 +1051,14 @@ function genBearCall(groups) {
         const strikeWidth = buyCall.strike - sellCall.strike;
         const maxLoss = strikeWidth - netPremium;
         if (maxLoss <= 0) continue;
+        const margin = spotPrice;
         const days = Math.max(0.01, g.daysLeft);
-        const apr = netPremium / maxLoss * 365 / days;
+        const apr = netPremium / margin * 365 / days;
         const breakeven = sellCall.strike + netPremium;
         results.push({
           type: 'bearCall', expiry, days: g.daysLeft,
           sellStrike: sellCall.strike, buyStrike: buyCall.strike,
-          netPremium, maxLoss, breakeven, apr,
+          netPremium, maxLoss, breakeven, apr, margin,
           safetyMin: safetyPct(sellCall.strike, 'upper'),
         });
       }
@@ -1109,13 +1111,14 @@ function genIronCondor(groups) {
         if (netPremium <= 0) continue;
         const maxLoss = Math.max(ps.width, cs.width) - netPremium;
         if (maxLoss <= 0) continue;
+        const margin = Math.max(ps.sellP.strike, spotPrice);
         const days = Math.max(0.01, g.daysLeft);
-        const apr = netPremium / maxLoss * 365 / days;
+        const apr = netPremium / margin * 365 / days;
         results.push({
           type: 'ironCondor', expiry, days: g.daysLeft,
           buyPutStrike: ps.buyP.strike, sellPutStrike: ps.sellP.strike,
           sellCallStrike: cs.sellC.strike, buyCallStrike: cs.buyC.strike,
-          netPremium, maxLoss, apr,
+          netPremium, maxLoss, apr, margin,
           safetyLower: safetyPct(ps.sellP.strike, 'lower'),
           safetyUpper: safetyPct(cs.sellC.strike, 'upper'),
           safetyMin: Math.min(safetyPct(ps.sellP.strike, 'lower'), safetyPct(cs.sellC.strike, 'upper')),
@@ -1157,7 +1160,7 @@ const strategyDescriptions = {
     outlook: '预期标的在安全区间内震荡，类似 Strangle 但风险有限',
     maxProfit: '净权利金 = 卖Put Bid + 卖Call Bid - 买Put Ask - 买Call Ask - 手续费',
     maxLoss: 'max(Put价差宽度, Call价差宽度) - 净权利金 — 风险有限',
-    margin: '最大亏损金额（因买入保护腿，无需额外保证金）',
+    margin: 'max(卖Put行权价, 现货价) — 按卖出义务方计算',
     breakeven: '下方 = 卖Put行权价 - 净权利金 · 上方 = 卖Call行权价 + 净权利金',
     tips: '风险有限适合新手；价差宽度越小杠杆越高但容错越低',
   },
@@ -1167,7 +1170,7 @@ const strategyDescriptions = {
     outlook: '看涨或中性偏多，预期标的不跌破卖出Put行权价',
     maxProfit: '净权利金 = 卖Put Bid - 买Put Ask - 手续费',
     maxLoss: '行权价差 - 净权利金 — 风险有限',
-    margin: '最大亏损金额',
+    margin: '卖Put行权价（卖出义务的全额保证金）',
     breakeven: '卖Put行权价 - 净权利金',
     tips: '方向性策略；卖出腿离现货越近权利金越高但风险越大',
   },
@@ -1177,7 +1180,7 @@ const strategyDescriptions = {
     outlook: '看跌或中性偏空，预期标的不涨破卖出Call行权价',
     maxProfit: '净权利金 = 卖Call Bid - 买Call Ask - 手续费',
     maxLoss: '行权价差 - 净权利金 — 风险有限',
-    margin: '最大亏损金额',
+    margin: '现货价格（卖Call义务的保证金）',
     breakeven: '卖Call行权价 + 净权利金',
     tips: '方向性策略；卖出腿离现货越近权利金越高但风险越大',
   },
