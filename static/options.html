@@ -1013,6 +1013,7 @@ function genBullPut(groups) {
       for (let j = i + 1; j < puts.length && j - i <= 3; j++) {
         const buyPut = puts[i];   // lower strike = buy
         const sellPut = puts[j];  // higher strike = sell
+        if (sellPut.strike >= spotPrice) continue; // OTM puts only
         if (sellPut.bid <= 0 || buyPut.ask <= 0) continue;
         const fee = comboFee(2);
         const netPremium = sellPut.bid - buyPut.ask - fee;
@@ -1044,6 +1045,7 @@ function genBearCall(groups) {
       for (let j = i + 1; j < calls.length && j - i <= 3; j++) {
         const sellCall = calls[i];  // lower strike = sell
         const buyCall = calls[j];   // higher strike = buy
+        if (sellCall.strike <= spotPrice) continue; // OTM calls only
         if (sellCall.bid <= 0 || buyCall.ask <= 0) continue;
         const fee = comboFee(2);
         const netPremium = sellCall.bid - buyCall.ask - fee;
