@@ -95,6 +95,21 @@ class BinanceMarketDataError(RuntimeError):
     """Raised when public Binance market data is unavailable or malformed."""
 
 
+def _normalize_range_rate(range_rate: float | None) -> float | None:
+    """Return the canonical configured range rate or reject unsupported input."""
+    if range_rate is None:
+        return None
+    if isinstance(range_rate, bool) or not isinstance(range_rate, (int, float)):
+        raise ValueError("Range rate must be a number")
+    if not math.isfinite(range_rate):
+        raise ValueError("Range rate must be finite")
+    for candidate in RANGE_CANDIDATES:
+        if math.isclose(float(range_rate), candidate, rel_tol=0.0, abs_tol=1e-9):
+            return candidate
+    choices = ", ".join(f"±{value * 100:.0f}%" for value in RANGE_CANDIDATES)
+    raise ValueError(f"Range rate must be one of: {choices}")
+
+
 def _get_json(path: str, params: dict | None = None, timeout=(4, 10), attempts: int = 2):
     url = f"{BINANCE_FAPI_BASE}{path}"
     last_error = None
@@ -1132,6 +1147,7 @@ def _analysis_cache_key(
     investment: float,
     leverage: int,
     fee_rate: float,
+    range_rate: float | None,
 ) -> tuple | None:
     fine_path = snapshot.get("finePath") or {}
     if not fine_path.get("complete"):
@@ -1141,6 +1157,7 @@ def _analysis_cache_key(
         float(investment),
         int(leverage),
         float(fee_rate),
+        range_rate,
         int(snapshot["serverTime"]),
         fine_path.get("status"),
         fine_path.get("toMs"),
@@ -1166,18 +1183,25 @@ def _analyze_with_cache(
     investment: float,
     leverage: int,
     fee_rate: float,
+    range_rate: float | None,
 ) -> dict:
     """Reuse one exact analysis for identical market data and user inputs."""
-    key = _analysis_cache_key(snapshot, symbol, investment, leverage, fee_rate)
+    key = _analysis_cache_key(
+        snapshot, symbol, investment, leverage, fee_rate, range_rate
+    )
     if key is None:
-        return analyze_snapshot(snapshot, symbol, investment, leverage, fee_rate)
+        return analyze_snapshot(
+            snapshot, symbol, investment, leverage, fee_rate, range_rate
+        )
 
     analysis_lock = _get_analysis_lock(key)
     with analysis_lock:
         with _analysis_cache_lock:
             cached = _analysis_cache.get(key)
         if cached is None:
-            cached = analyze_snapshot(snapshot, symbol, investment, leverage, fee_rate)
+            cached = analyze_snapshot(
+                snapshot, symbol, investment, leverage, fee_rate, range_rate
+            )
             with _analysis_cache_lock:
                 _analysis_cache[key] = cached
                 while len(_analysis_cache) > ANALYSIS_CACHE_MAX_ENTRIES:
@@ -1192,7 +1216,9 @@ def analyze_snapshot(
     investment: float,
     leverage: int,
     fee_rate: float,
+    range_rate: float | None = None,
 ) -> dict:
+    selected_range_rate = _normalize_range_rate(range_rate)
     candles = snapshot["candles"][-WEEK_MINUTES:]
     daily_candles = _split_daily_candles(candles)
     rules = snapshot["rules"]
@@ -1287,8 +1313,26 @@ def analyze_snapshot(
     ]
     if not eligible:
         raise BinanceMarketDataError("No feasible grid combination for the selected investment")
-    steady_ranked = sorted(
+    recommendation_candidates = (
+        eligible
+        if selected_range_rate is None
+        else [item for item in eligible if item["rangeRate"] == selected_range_rate]
+    )
+    if not recommendation_candidates:
+        raise BinanceMarketDataError(
+            "No feasible grid combination for the selected investment and range"
+        )
+    all_harvest_ranked = sorted(
         eligible,
+        key=lambda item: (
+            item["dailyHarvestScore"],
+            item["total7dHarvestScore"],
+            item["stability"],
+        ),
+        reverse=True,
+    )
+    steady_ranked = sorted(
+        recommendation_candidates,
         key=lambda item: (
             item["riskAdjustedScore"],
             item["dailyHarvestScore"],
@@ -1297,7 +1341,7 @@ def analyze_snapshot(
         reverse=True,
     )
     harvest_ranked = sorted(
-        eligible,
+        recommendation_candidates,
         key=lambda item: (
             item["dailyHarvestScore"],
             item["total7dHarvestScore"],
@@ -1319,7 +1363,7 @@ def analyze_snapshot(
     range_items = []
     for range_rate in RANGE_CANDIDATES:
         candidates = [
-            item for item in harvest_ranked if item["rangeRate"] == range_rate
+            item for item in all_harvest_ranked if item["rangeRate"] == range_rate
         ]
         if candidates:
             range_items.append(candidates[0])
@@ -1366,9 +1410,17 @@ def analyze_snapshot(
             "收盘路径保守测算，完成后会自动更新。"
         )
 
+    range_explanation = (
+        f"你选择了当前价格上下 ±{selected_range_rate * 100:.0f}% 的区间；在该区间内，"
+        if selected_range_rate is not None
+        else (
+            "系统比较全部可选区间后，选择了当前价格上下 "
+            f"±{best['rangeRate'] * 100:.0f}% 的区间；"
+        )
+    )
     reason = (
         f"近24小时单边趋势强度为 {er_24h * 100:.1f}%，{trend_explanation}"
-        f"使用过去7个独立24小时窗口测算，这组上下 ±{best['rangeRate'] * 100:.0f}%、"
+        f"使用过去7个独立24小时窗口测算，{range_explanation}"
         f"每格约 {best['targetGapRate'] * 100:.1f}% 的参数，"
         f"平均每天完成 {best['averageRoundTripsPerDay']:.1f} 次有效往返。"
         f"{path_explanation}{risk_explanation}"
@@ -1406,6 +1458,7 @@ def analyze_snapshot(
         "assumptions": {
             "investment": investment,
             "leverage": leverage,
+            "selectedRangeRate": selected_range_rate,
             "oneSideFeeRate": fee_rate,
             "roundTripFeeRate": round_trip_fee_rate,
             "fundingIncluded": False,
@@ -1442,6 +1495,10 @@ def analyze_snapshot(
         "rangeAnalysis": range_rows,
         "rankings": ranking_rows,
         "selection": {
+            "rangeSelectionMode": (
+                "manual" if selected_range_rate is not None else "automatic"
+            ),
+            "selectedRangeRate": selected_range_rate,
             "harvestRankingBasis": "dailyHarvestScore",
             "recommendationBasis": "dailyHarvestScore",
             "steadyAlternativeBasis": (
@@ -1498,6 +1555,7 @@ def optimize_grid(
     leverage: int = DEFAULT_LEVERAGE,
     fee_rate: float = DEFAULT_FEE_RATE,
     force_refresh: bool = False,
+    range_rate: float | None = None,
 ) -> dict:
     normalized_symbol = symbol.upper().strip()
     if normalized_symbol not in SUPPORTED_GRID_SYMBOLS:
@@ -1509,6 +1567,7 @@ def optimize_grid(
         raise ValueError(f"Leverage must be an integer from 1 to {max_leverage}")
     if not math.isfinite(fee_rate) or not 0 <= fee_rate < 0.01:
         raise ValueError("One-side fee rate must be between 0 and 1%")
+    selected_range_rate = _normalize_range_rate(range_rate)
 
     snapshot = get_market_snapshot(normalized_symbol, force_refresh=force_refresh)
     return _analyze_with_cache(
@@ -1517,4 +1576,5 @@ def optimize_grid(
         float(investment),
         leverage,
         float(fee_rate),
+        selected_range_rate,
     )

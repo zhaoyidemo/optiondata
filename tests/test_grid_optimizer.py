@@ -423,7 +423,23 @@ class GridMarketDataTests(unittest.TestCase):
             [row["rangeRate"] for row in result["rangeAnalysis"]],
             list(grid_optimizer.RANGE_CANDIDATES),
         )
+        self.assertEqual(result["selection"]["rangeSelectionMode"], "automatic")
+        self.assertIsNone(result["selection"]["selectedRangeRate"])
         json.dumps(result, allow_nan=False)
+
+        manual_result = analyze_snapshot(
+            snapshot, "MUUSDT", 100_000, 1, 0.0001, range_rate=0.12
+        )
+        self.assertEqual(manual_result["recommendation"]["rangeRate"], 0.12)
+        self.assertTrue(
+            all(row["rangeRate"] == 0.12 for row in manual_result["rankings"])
+        )
+        self.assertEqual(manual_result["selection"]["rangeSelectionMode"], "manual")
+        self.assertEqual(manual_result["selection"]["selectedRangeRate"], 0.12)
+        self.assertEqual(
+            [row["rangeRate"] for row in manual_result["rangeAnalysis"]],
+            list(grid_optimizer.RANGE_CANDIDATES),
+        )
 
 
 class GridRouteTests(unittest.TestCase):
@@ -438,6 +454,10 @@ class GridRouteTests(unittest.TestCase):
             self.assertIn(f'value="{symbol}"', html)
         self.assertIn("币安永续网格参数助手", html)
         self.assertIn("30%", html)
+        self.assertIn('id="rangeRate"', html)
+        self.assertIn('<option value="">自动推荐</option>', html)
+        for range_rate in grid_optimizer.RANGE_CANDIDATES:
+            self.assertIn(f'<option value="{range_rate:.2f}">', html)
         self.assertIn("历史日均网格利润估算", html)
         self.assertIn("收益优先建议", html)
         self.assertIn("较少出界的参考方案", html)
@@ -473,7 +493,7 @@ class GridRouteTests(unittest.TestCase):
     def test_grid_api_passes_binance_manual_inputs(self, optimize_mock):
         optimize_mock.return_value = {"symbol": "MUUSDT"}
         response = self.client.get(
-            "/api/grid-optimize?symbol=MUUSDT&investment=100000&leverage=3&feeBps=1&refresh=1"
+            "/api/grid-optimize?symbol=MUUSDT&investment=100000&leverage=3&feeBps=1&rangeRate=0.12&refresh=1"
         )
         self.assertEqual(response.status_code, 200)
         optimize_mock.assert_called_once_with(
@@ -482,6 +502,7 @@ class GridRouteTests(unittest.TestCase):
             leverage=3,
             fee_rate=0.0001,
             force_refresh=False,
+            range_rate=0.12,
         )
         response.close()
 
@@ -495,6 +516,9 @@ class GridRouteTests(unittest.TestCase):
             "leverage=1.5",
             "feeBps=-1",
             "feeBps=100",
+            "rangeRate=nan",
+            "rangeRate=inf",
+            "rangeRate=0.07",
         ):
             with self.subTest(query=query):
                 response = self.client.get(f"/api/grid-optimize?symbol=MUUSDT&{query}")

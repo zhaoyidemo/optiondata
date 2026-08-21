@@ -535,6 +535,10 @@ def api_grid_optimize():
         investment = float(request.args.get("investment", DEFAULT_INVESTMENT))
         leverage = int(request.args.get("leverage", DEFAULT_LEVERAGE))
         fee_bps = float(request.args.get("feeBps", DEFAULT_FEE_RATE * 10000))
+        range_rate_text = request.args.get("rangeRate", "").strip().lower()
+        range_rate = (
+            None if range_rate_text in {"", "auto"} else float(range_rate_text)
+        )
 
         max_leverage = GRID_SYMBOL_CONFIGS[symbol]["maxLeverage"]
         if not 1 <= leverage <= max_leverage:
@@ -547,6 +551,7 @@ def api_grid_optimize():
             leverage=leverage,
             fee_rate=fee_bps / 10000,
             force_refresh=False,
+            range_rate=range_rate,
         )
         return jsonify({"ok": True, "data": data})
     except ValueError as e:

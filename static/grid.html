@@ -29,7 +29,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .guide-number{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;background:#4ade801a;color:var(--green);font-weight:700}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:18px}
 .panel-title{font-size:.88rem;color:var(--text2);margin-bottom:13px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.controls{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px;align-items:end}
+.controls{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:12px;align-items:end}
 .field label{display:block;font-size:.74rem;color:var(--text2);margin-bottom:6px}
 .field input,.field select{width:100%;height:40px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:.82rem;padding:0 10px}
 .field input:focus,.field select:focus{outline:none;border-color:var(--purple)}
@@ -128,7 +128,7 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 </div>
 
 <div class="quick-guide" aria-label="使用步骤">
-  <div class="guide-step"><span class="guide-number">1</span><span><b>填写测算条件</b>设置投入金额、杠杆和你的手续费</span></div>
+  <div class="guide-step"><span class="guide-number">1</span><span><b>填写测算条件</b>设置投入金额、杠杆、价格区间和手续费</span></div>
   <div class="guide-step"><span class="guide-number">2</span><span><b>查看当前建议</b>先判断现在是否适合中性网格</span></div>
   <div class="guide-step"><span class="guide-number">3</span><span><b>复制创建参数</b>前往币安，由你手动确认并创建</span></div>
 </div>
@@ -170,6 +170,22 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
       <div id="leverageHint" class="hint">由你手动选择，本工具不推荐倍数</div>
     </div>
     <div class="field">
+      <label for="rangeRate">价格区间宽度</label>
+      <select id="rangeRate" aria-describedby="rangeRateHint">
+        <option value="">自动推荐</option>
+        <option value="0.06">当前价上下 ±6%</option>
+        <option value="0.08">当前价上下 ±8%</option>
+        <option value="0.10">当前价上下 ±10%</option>
+        <option value="0.12">当前价上下 ±12%</option>
+        <option value="0.14">当前价上下 ±14%</option>
+        <option value="0.16">当前价上下 ±16%</option>
+        <option value="0.18">当前价上下 ±18%</option>
+        <option value="0.20">当前价上下 ±20%</option>
+        <option value="0.30">当前价上下 ±30%</option>
+      </select>
+      <div id="rangeRateHint" class="hint">自动推荐会比较全部九档；也可固定一档测算</div>
+    </div>
+    <div class="field">
       <label for="feeBps">单边挂单手续费（万分之几）</label>
       <input id="feeBps" type="number" min="0" max="99.9" step="0.1" value="1" aria-describedby="feeHint">
       <div id="feeHint" class="hint">填 1 表示万分之一；完整买卖共扣万分之二</div>
@@ -196,7 +212,7 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 
   <div class="two-col">
     <section class="recommendation">
-      <div class="recommendation-head"><h2>收益优先建议</h2><span class="basis-badge">按历史网格利润估算选择</span></div>
+      <div class="recommendation-head"><h2 id="recommendationTitle">收益优先建议</h2><span id="recommendationBasis" class="basis-badge">按历史网格利润估算选择</span></div>
       <div class="recommendation-grid">
         <div class="rec-item"><div class="label">价格区间下限</div><div id="recLower" class="value">—</div></div>
         <div class="rec-item"><div class="label">价格区间上限</div><div id="recUpper" class="value">—</div></div>
@@ -240,7 +256,7 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
     </aside>
   </div>
 
-  <h2 class="section-title"><span>网格间距对比</span><small>在建议价格区间内，比较 0.4% 至 1.2% 的每格间距</small></h2>
+  <h2 class="section-title"><span>网格间距对比</span><small id="gapSectionNote">在建议价格区间内，比较 0.4% 至 1.2% 的每格间距</small></h2>
   <div class="table-wrap"><table><caption class="sr-only">不同网格间距的历史测算结果</caption>
     <thead><tr><th scope="col">目标间距</th><th scope="col">实际间距</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">7 天累计往返</th><th scope="col">触达网格比例</th><th scope="col">每格净利润率</th><th scope="col">每单数量</th><th scope="col">历史日均利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="gapBody"></tbody>
@@ -258,7 +274,7 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
     <tbody id="dailyBody"></tbody>
   </table></div>
 
-  <h2 class="section-title"><span>参数组合排名</span><small>按历史日均网格利润估算排序；资金费率不参与计算</small></h2>
+  <h2 class="section-title"><span>参数组合排名</span><small id="rankingSectionNote">按历史日均网格利润估算排序；资金费率不参与计算</small></h2>
   <div class="table-wrap"><table><caption class="sr-only">按历史日均网格利润估算排列的参数组合</caption>
     <thead><tr><th scope="col">排名</th><th scope="col">区间宽度</th><th scope="col">每格间距</th><th scope="col">价格下限 / 上限</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">每格净利润率</th><th scope="col">历史日均利润估算</th><th scope="col">7 天网格利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="rankBody"></tbody>
@@ -397,6 +413,8 @@ function render(data){
   const trend = data.trend;
   const assumptions = data.assumptions;
   const baseAsset = data.contractRules.baseAsset;
+  const manualRange = data.selection.rangeSelectionMode === 'manual';
+  const rangeLabel = `上下 ±${fmt(rec.rangeRate*100,0)}%`;
   configureLeverage(data.contractRules.maxLeverage);
 
   $('officialLink').href = data.officialManualUrl;
@@ -422,6 +440,12 @@ function render(data){
   $('recRisk').textContent = `${rec.riskBreaches} / ${rec.riskSamples}（${pct(rec.outOfRangeRisk,1)}）`;
   $('recRisk').className = 'value blue';
   $('reason').textContent = rec.reason;
+  $('recommendationTitle').textContent = manualRange ? '所选区间的收益优先建议' : '收益优先建议';
+  $('recommendationBasis').textContent = manualRange ? `已固定当前价${rangeLabel}` : '按历史网格利润估算选择';
+  $('gapSectionNote').textContent = `在当前价${rangeLabel}的区间内，比较 0.4% 至 1.2% 的每格间距`;
+  $('rankingSectionNote').textContent = manualRange
+    ? `只排列当前价${rangeLabel}区间内的组合；资金费率不参与计算`
+    : '按历史日均网格利润估算排序；资金费率不参与计算';
   $('steadyValues').textContent = `区间上下 ±${fmt(steady.rangeRate*100,0)}% · 每格约 ${pct(steady.targetGapRate,1)} · ${steady.numberOfGrids} 格`;
   $('steadyReason').textContent = steady.reason;
 
@@ -485,6 +509,7 @@ async function analyze(background=false){
   const investment = Number($('investment').value);
   const leverage = Number($('leverage').value);
   const feeBps = Number($('feeBps').value);
+  const rangeRate = $('rangeRate').value;
   const maxLeverage = Number($('leverage').dataset.max || 10);
   if(!Number.isFinite(investment) || investment <= 0){setStatus('err','投入保证金必须大于 0');return}
   if(!Number.isInteger(leverage) || leverage < 1 || leverage > maxLeverage){setStatus('err',`杠杆倍数必须在 1 至 ${maxLeverage} 倍之间`);return}
@@ -500,6 +525,7 @@ async function analyze(background=false){
   }
   try{
     const params = new URLSearchParams({symbol:$('symbol').value,investment:String(investment),leverage:String(leverage),feeBps:String(feeBps)});
+    if(rangeRate) params.set('rangeRate',rangeRate);
     const response = await fetch(`/api/grid-optimize?${params}`);
     const payload = await response.json();
     if(!response.ok || !payload.ok) throw new Error(payload.error || `HTTP ${response.status}`);
@@ -543,6 +569,7 @@ $('copyBtn').addEventListener('click',async()=>{
   const text=[
     `交易标的（Symbol）：${d.symbol} 永续`,`当前建议：${friendlyMode(d.trend)}`,
     `创建方式：手动（Manual）`,`方向：中性（Neutral）`,`网格类型：等差（Arithmetic）`,
+    `价格区间宽度：当前价上下 ±${fmt(r.rangeRate*100,0)}%`,
     `价格下限（Lower）：${price(r.lower,d)}`,`价格上限（Upper）：${price(r.upper,d)}`,
     `网格数量（Number of Grids）：${r.numberOfGrids}`,`每格净利润率：${profitRange(r)}`,
     `投入保证金：${fmt(a.investment,2)} USDT`,`杠杆倍数：${a.leverage}x`,
