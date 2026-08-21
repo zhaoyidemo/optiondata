@@ -634,16 +634,31 @@ def analyze_snapshot(
     quantity_decimals = _decimal_places(rules["stepSize"])
     book = snapshot["book"]
 
+    if regime["level"] == "good":
+        trend_explanation = "价格整体更接近来回震荡，适合观察中性网格机会。"
+    elif regime["level"] == "caution":
+        trend_explanation = "震荡和单边走势并存，仍可观察中性网格，但需要更谨慎。"
+    else:
+        trend_explanation = "单边走势比较明显，中性网格容易在一侧持续积累仓位。"
+
+    if best["outOfRangeRisk"] == 0:
+        risk_explanation = "历史滚动检测中没有出现 24 小时跑出该区间的情况。"
+    else:
+        risk_explanation = (
+            f"历史上约 {best['outOfRangeRisk'] * 100:.1f}% 的 24 小时窗口"
+            "曾跑出这个价格区间。"
+        )
+
     reason = (
-        f"最近24小时 5m ER 为 {er_24h:.3f}，当前属于{regime['state']}状态。"
-        f"在过去7个独立24小时窗口中，±{best['rangeRate'] * 100:.0f}% / "
-        f"目标 Gap {best['targetGapRate'] * 100:.1f}% 的组合日均完成 "
-        f"{best['averageRoundTripsPerDay']:.1f} 次有效往返，"
-        f"滚动24小时出界风险为 {best['outOfRangeRisk'] * 100:.1f}%。"
-        f"单边手续费 {fee_rate * 100:.3f}% 已按双边扣除。"
+        f"近24小时单边趋势强度为 {er_24h * 100:.1f}%，{trend_explanation}"
+        f"使用过去7个独立24小时窗口测算，这组上下 ±{best['rangeRate'] * 100:.0f}%、"
+        f"每格约 {best['targetGapRate'] * 100:.1f}% 的参数，"
+        f"平均每天完成 {best['averageRoundTripsPerDay']:.1f} 次有效往返。"
+        f"{risk_explanation}"
+        f"收益测算已按单边万分之 {fee_rate * 10000:g} 扣除买卖两边手续费。"
     )
     if recommended_mode == "不建议开网格":
-        reason += " 当前趋势效率超过 Neutral Grid 阈值，因此参数仅供观察，不建议立即创建。"
+        reason += " 因此下方参数目前只供观察，不建议立即创建。"
 
     return {
         "symbol": symbol,
