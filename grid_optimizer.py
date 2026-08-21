@@ -29,6 +29,7 @@ BINANCE_FAPI_BASE = os.environ.get("BINANCE_FAPI_BASE", "https://fapi.binance.co
 BINANCE_DATA_BASE = os.environ.get("BINANCE_DATA_BASE", "https://data.binance.vision")
 GRID_SYMBOL_CONFIGS = {
     "MUUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "MSTRUSDT": {"maxLeverage": 10, "assetClass": "stock"},
     "BMNRUSDT": {"maxLeverage": 10, "assetClass": "stock"},
     "CRWVUSDT": {"maxLeverage": 10, "assetClass": "stock"},
     "INTCUSDT": {"maxLeverage": 10, "assetClass": "stock"},

@@ -39,6 +39,7 @@ class GridMathTests(unittest.TestCase):
             tuple(grid_optimizer.GRID_SYMBOL_CONFIGS),
             (
                 "MUUSDT",
+                "MSTRUSDT",
                 "BMNRUSDT",
                 "CRWVUSDT",
                 "INTCUSDT",
