@@ -63,6 +63,15 @@ class GridMathTests(unittest.TestCase):
             grid_optimizer.RANGE_CANDIDATES,
             (0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.30),
         )
+        self.assertEqual(
+            grid_optimizer.GAP_CANDIDATES,
+            tuple(round(value / 2000, 4) for value in range(1, 25)),
+        )
+        self.assertEqual(
+            grid_optimizer.GAP_CANDIDATES[:4],
+            (0.0005, 0.001, 0.0015, 0.002),
+        )
+        self.assertEqual(grid_optimizer.GAP_CANDIDATES[-1], 0.012)
 
     def test_efficiency_ratio_distinguishes_trend_and_chop(self):
         self.assertEqual(efficiency_ratio([100, 101, 102, 103]), 1.0)
@@ -425,6 +434,10 @@ class GridMarketDataTests(unittest.TestCase):
         )
         self.assertEqual(result["selection"]["rangeSelectionMode"], "automatic")
         self.assertIsNone(result["selection"]["selectedRangeRate"])
+        self.assertEqual(
+            [row["targetGapRate"] for row in result["gapAnalysis"]],
+            list(grid_optimizer.GAP_CANDIDATES),
+        )
         json.dumps(result, allow_nan=False)
 
         manual_result = analyze_snapshot(
@@ -456,6 +469,8 @@ class GridRouteTests(unittest.TestCase):
         self.assertIn("30%", html)
         self.assertIn('id="rangeRate"', html)
         self.assertIn('<option value="">自动推荐</option>', html)
+        self.assertIn("比较 0.05% 至 1.20%", html)
+        self.assertIn("币安手动创建支持 2 至 1,000 格", html)
         for range_rate in grid_optimizer.RANGE_CANDIDATES:
             self.assertIn(f'<option value="{range_rate:.2f}">', html)
         self.assertIn("历史日均网格利润估算", html)

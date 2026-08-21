@@ -256,7 +256,7 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
     </aside>
   </div>
 
-  <h2 class="section-title"><span>网格间距对比</span><small id="gapSectionNote">在建议价格区间内，比较 0.4% 至 1.2% 的每格间距</small></h2>
+  <h2 class="section-title"><span>网格间距对比</span><small id="gapSectionNote">在建议价格区间内，比较 0.05% 至 1.20%，每 0.05% 一档</small></h2>
   <div class="table-wrap"><table><caption class="sr-only">不同网格间距的历史测算结果</caption>
     <thead><tr><th scope="col">目标间距</th><th scope="col">实际间距</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">7 天累计往返</th><th scope="col">触达网格比例</th><th scope="col">每格净利润率</th><th scope="col">每单数量</th><th scope="col">历史日均利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="gapBody"></tbody>
@@ -309,6 +309,7 @@ const MAX_FINE_POLL_ATTEMPTS = 400;
 const $ = id => document.getElementById(id);
 const fmt = (value, digits=2) => Number(value).toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits});
 const pct = (value, digits=2) => `${fmt(Number(value)*100,digits)}%`;
+const gapPct = value => `${Number(value*100).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:2})}%`;
 const money = (value, digits=2) => `${fmt(value,digits)} USDT`;
 const dailyMoney = (value, digits=2) => `${fmt(value,digits)} USDT / 天`;
 const comparisonScore = (value, digits=2) => `${fmt(value,digits)} 分`;
@@ -425,7 +426,7 @@ function render(data){
   $('statMode').textContent = friendlyMode(trend);
   $('statMode').className = `value ${trend.level === 'avoid' ? 'red' : trend.level === 'caution' ? 'yellow' : 'green'}`;
   $('statState').textContent = trend.level === 'avoid' ? '单边趋势较明显' : trend.level === 'caution' ? '震荡和趋势并存' : '价格以震荡为主';
-  $('statGap').textContent = pct(rec.targetGapRate,1);
+  $('statGap').textContent = gapPct(rec.targetGapRate);
   $('statProfit').textContent = `扣除手续费后，每格 ${profitRange(rec)}`;
   $('statSpread').textContent = pct(market.spreadRate,4);
 
@@ -442,11 +443,11 @@ function render(data){
   $('reason').textContent = rec.reason;
   $('recommendationTitle').textContent = manualRange ? '所选区间的收益优先建议' : '收益优先建议';
   $('recommendationBasis').textContent = manualRange ? `已固定当前价${rangeLabel}` : '按历史网格利润估算选择';
-  $('gapSectionNote').textContent = `在当前价${rangeLabel}的区间内，比较 0.4% 至 1.2% 的每格间距`;
+  $('gapSectionNote').textContent = `在当前价${rangeLabel}的区间内，比较 0.05% 至 1.20%，每 0.05% 一档`;
   $('rankingSectionNote').textContent = manualRange
     ? `只排列当前价${rangeLabel}区间内的组合；资金费率不参与计算`
     : '按历史日均网格利润估算排序；资金费率不参与计算';
-  $('steadyValues').textContent = `区间上下 ±${fmt(steady.rangeRate*100,0)}% · 每格约 ${pct(steady.targetGapRate,1)} · ${steady.numberOfGrids} 格`;
+  $('steadyValues').textContent = `区间上下 ±${fmt(steady.rangeRate*100,0)}% · 每格约 ${gapPct(steady.targetGapRate)} · ${steady.numberOfGrids} 格`;
   $('steadyReason').textContent = steady.reason;
 
   $('mSymbol').textContent = `${data.symbol} 永续`;
@@ -464,7 +465,7 @@ function render(data){
 
   $('gapBody').innerHTML = data.gapAnalysis.map(row => `
     <tr class="${row.targetGapRate === rec.targetGapRate ? 'best' : ''}">
-      <td>${pct(row.targetGapRate,1)}</td><td>${pct(row.actualGapAtMark,3)}</td><td>${row.numberOfGrids}</td>
+      <td>${gapPct(row.targetGapRate)}</td><td>${pct(row.actualGapAtMark,3)}</td><td>${row.numberOfGrids}</td>
       <td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${fmt(row.totalRoundTrips,0)}</td>
       <td>${pct(row.averageUtilization,1)}</td><td>${profitRange(row)}</td>
       <td>${quantity(row.quantityPerOrder,data)} ${safe(baseAsset)}</td><td>${dailyMoney(row.dailyHarvestScore,2)}</td>
@@ -474,7 +475,7 @@ function render(data){
   $('rangeBody').innerHTML = data.rangeAnalysis.map(row => `
     <tr class="${row.rangeRate === rec.rangeRate ? 'best' : ''}">
       <td>±${fmt(row.rangeRate*100,0)}%</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
-      <td>${pct(row.targetGapRate,1)}</td><td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td>
+      <td>${gapPct(row.targetGapRate)}</td><td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td>
       <td>${pct(row.averageUtilization,1)}</td><td>${row.riskBreaches} / ${row.riskSamples}（${pct(row.outOfRangeRisk,1)}）</td>
       <td>${dailyMoney(row.dailyHarvestScore,2)}</td><td>${comparisonScore(row.riskAdjustedScore,2)}</td>
     </tr>`).join('');
@@ -485,7 +486,7 @@ function render(data){
 
   $('rankBody').innerHTML = data.rankings.map((row,index) => `
     <tr class="${index === 0 ? 'best' : ''}"><td>${index+1}</td><td>±${fmt(row.rangeRate*100,0)}%</td>
-    <td>${pct(row.targetGapRate,1)}</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
+    <td>${gapPct(row.targetGapRate)}</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
     <td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${profitRange(row)}</td>
     <td>${dailyMoney(row.dailyHarvestScore,2)}</td><td>${money(row.total7dHarvestScore,2)}</td><td>${comparisonScore(row.riskAdjustedScore,2)}</td></tr>`).join('');
 
@@ -498,7 +499,8 @@ function render(data){
     `分析时拆成 ${coverage.dailyWindows} 个独立的 24 小时窗口。${fineDescription}<br>`+
     `<b>合约最小单位：</b>价格最小变动 ${data.contractRules.tickSize} USDT；下单数量最小变动 ${data.contractRules.stepSize} ${safe(baseAsset)}；`+
     `最小数量 ${data.contractRules.minQty} ${safe(baseAsset)}；最小名义金额 ${data.contractRules.minNotional} USDT。`+
-    `<br><b>资金、数量与杠杆：</b>每单数量和总投入是按等额名义资金、当前标记价格及合约精度得到的模型估算；杠杆基础上限来自合约配置，但实际可用倍数还受币安名义金额档位限制，最终以币安创建页面为准。`;
+    `<br><b>资金、数量与杠杆：</b>每单数量和总投入是按等额名义资金、当前标记价格及合约精度得到的模型估算；杠杆基础上限来自合约配置，但实际可用倍数还受币安名义金额档位限制，最终以币安创建页面为准。`+
+    `<br><b>密集网格限制：</b>币安手动创建支持 2 至 1,000 格。目标间距过小时会按 1,000 格封顶，此时请以表格中的“实际间距”为准。`;
 
   $('results').classList.remove('hidden');
   scheduleFinePathPoll(data);

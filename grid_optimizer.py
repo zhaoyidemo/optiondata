@@ -48,7 +48,7 @@ GRID_SYMBOL_CONFIGS = {
     "SPCXUSDT": {"maxLeverage": 10, "assetClass": "stock"},
 }
 SUPPORTED_GRID_SYMBOLS = tuple(GRID_SYMBOL_CONFIGS)
-GAP_CANDIDATES = tuple(round(value / 1000, 3) for value in range(4, 13))
+GAP_CANDIDATES = tuple(round(value / 2000, 4) for value in range(1, 25))
 RANGE_CANDIDATES = (0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.30)
 
 DEFAULT_INVESTMENT = 100_000.0
@@ -139,6 +139,10 @@ def _iso_from_ms(timestamp_ms: int) -> str:
 def _decimal_places(step: float) -> int:
     normalized = Decimal(str(step)).normalize()
     return max(0, -normalized.as_tuple().exponent)
+
+
+def _format_gap_percent(rate: float) -> str:
+    return f"{rate * 100:.2f}".rstrip("0").rstrip(".")
 
 
 def _round_to_step(value: float, step: float, rounding) -> float:
@@ -1421,7 +1425,7 @@ def analyze_snapshot(
     reason = (
         f"近24小时单边趋势强度为 {er_24h * 100:.1f}%，{trend_explanation}"
         f"使用过去7个独立24小时窗口测算，{range_explanation}"
-        f"每格约 {best['targetGapRate'] * 100:.1f}% 的参数，"
+        f"每格约 {_format_gap_percent(best['targetGapRate'])}% 的参数，"
         f"平均每天完成 {best['averageRoundTripsPerDay']:.1f} 次有效往返。"
         f"{path_explanation}{risk_explanation}"
         f"历史网格利润估算已按单边万分之 {fee_rate * 10000:g} 扣除买卖两边手续费。"
@@ -1434,7 +1438,7 @@ def analyze_snapshot(
     else:
         steady_reason = (
             f"如果更重视少出界，可参考上下 ±{steady_alternative['rangeRate'] * 100:.0f}%、"
-            f"每格约 {steady_alternative['targetGapRate'] * 100:.1f}% 的组合。"
+            f"每格约 {_format_gap_percent(steady_alternative['targetGapRate'])}% 的组合。"
             "它只用于比较历史出界情况，不替代按历史网格利润估算得到的主推荐。"
         )
 
