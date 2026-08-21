@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binance 美股永续网格优化器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#151821;--border:#2a2d3a;
+  --text:#e2e8f0;--text2:#94a3b8;--green:#4ade80;--red:#f87171;
+  --yellow:#fbbf24;--purple:#818cf8;--blue:#60a5fa;--cyan:#22d3ee;
+}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;padding:0 20px 28px}
+a{color:var(--purple)}
+.nav-bar{display:flex;align-items:center;gap:0;padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto}
+.nav-link{padding:8px 20px;font-size:.8rem;color:var(--text2);text-decoration:none;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none;white-space:nowrap;position:relative;top:1px}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--green);background:var(--surface);border-color:var(--border)}
+.header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.header h1{font-size:1.2rem;color:var(--green);margin-bottom:7px}
+.subtitle{font-size:.75rem;color:var(--text2);line-height:1.65;max-width:780px}
+.official-link{padding:9px 14px;border:1px solid var(--yellow);border-radius:7px;color:var(--yellow);text-decoration:none;font-size:.75rem;white-space:nowrap}
+.official-link:hover{background:#fbbf2414}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:18px}
+.panel-title{font-size:.82rem;color:var(--text2);margin-bottom:13px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.controls{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px;align-items:end}
+.field label{display:block;font-size:.66rem;color:var(--text2);margin-bottom:6px}
+.field input,.field select{width:100%;height:38px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:.78rem;padding:0 10px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--purple)}
+.field .hint{font-size:.6rem;color:#64748b;margin-top:5px;line-height:1.4}
+.btn{height:38px;padding:0 18px;border:1px solid var(--green);border-radius:6px;background:var(--green);color:var(--bg);font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:wait}
+.status-bar{padding:10px 14px;border-radius:8px;margin-bottom:18px;font-size:.75rem;display:flex;gap:9px;align-items:center;line-height:1.5}
+.status-bar.loading{background:#2563eb22;border:1px solid #2563eb44;color:var(--blue)}
+.status-bar.ok{background:#16a34a22;border:1px solid #16a34a44;color:var(--green)}
+.status-bar.err{background:#dc262622;border:1px solid #dc262644;color:var(--red)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.loading .dot{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.25}}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px 15px;min-height:88px}
+.stat .label{font-size:.62rem;color:var(--text2);margin-bottom:7px;line-height:1.35}
+.stat .value{font-size:1.08rem;font-weight:700;word-break:break-word}
+.stat .sub{font-size:.62rem;color:var(--text2);margin-top:5px}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.blue{color:var(--blue)}.purple{color:var(--purple)}.red{color:var(--red)}.cyan{color:var(--cyan)}
+.two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:18px}
+.recommendation{background:linear-gradient(135deg,#4ade800d,#818cf80d);border:1px solid #4ade8044;border-radius:10px;padding:18px}
+.recommendation h2{font-size:.93rem;color:var(--green);margin-bottom:14px}
+.recommendation-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.rec-item{background:#0f111799;border:1px solid var(--border);border-radius:7px;padding:11px}
+.rec-item .label{font-size:.6rem;color:var(--text2);margin-bottom:5px}
+.rec-item .value{font-size:.9rem;font-weight:700}
+.reason{font-size:.72rem;line-height:1.75;color:var(--text2);padding-top:12px;border-top:1px solid var(--border)}
+.manual{background:var(--surface);border:1px solid #fbbf2444;border-radius:10px;padding:18px}
+.manual h2{font-size:.9rem;color:var(--yellow);margin-bottom:5px}
+.manual-sub{font-size:.62rem;color:var(--text2);margin-bottom:13px;line-height:1.5}
+.manual-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #2a2d3a99;font-size:.68rem}
+.manual-row:last-of-type{border-bottom:none}
+.manual-row span:first-child{color:var(--text2)}
+.manual-row span:last-child{text-align:right;font-weight:600}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;background:#4ade8022;color:var(--green);font-size:.62rem}
+.badge.off{background:#64748b22;color:var(--text2)}
+.copy-btn{width:100%;height:34px;margin-top:12px;border:1px solid var(--yellow);border-radius:6px;background:transparent;color:var(--yellow);font:inherit;font-size:.7rem;cursor:pointer}
+.copy-btn:hover{background:#fbbf2414}
+.section-title{font-size:.88rem;color:var(--text);margin:24px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.section-title small{font-size:.62rem;color:var(--text2);font-weight:400}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow-x:auto;margin-bottom:18px}
+table{width:100%;border-collapse:collapse;font-size:.7rem}
+th{padding:11px 10px;text-align:right;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 10px;border-bottom:1px solid #2a2d3a99;text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:none}tr:hover{background:#ffffff05}
+tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weight:700}
+.yes{color:var(--red)}.no{color:var(--green)}
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.method-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px;font-size:.67rem;line-height:1.65;color:var(--text2)}
+.method-card b{display:block;color:var(--text);margin-bottom:5px;font-size:.72rem}
+.formula{color:var(--cyan);font-size:.68rem;margin-top:5px;word-break:break-word}
+.data-note{font-size:.67rem;color:var(--text2);line-height:1.75}
+.data-note b{color:var(--text)}
+.disclaimer{font-size:.62rem;color:#64748b;text-align:center;line-height:1.7;padding:16px 8px 0}
+.hidden{display:none}
+@media(max-width:1150px){.controls{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}.method-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){body{padding:0 12px 22px}.controls{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.recommendation-grid{grid-template-columns:1fr 1fr}.method-grid{grid-template-columns:1fr}.nav-link{padding:8px 12px}.header h1{font-size:1rem}}
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a class="nav-link" href="/">双币对比</a>
+  <a class="nav-link" href="/options">币安期权行情</a>
+  <a class="nav-link" href="/deribit">Deribit期权行情</a>
+  <a class="nav-link active" href="/grid">永续网格优化</a>
+</nav>
+
+<div class="header">
+  <div>
+    <h1>Binance 美股永续网格优化器</h1>
+    <div class="subtitle">使用过去一周完整 1m Kline，统计真正完成相邻网格买卖配对的次数。只做参数分析，不连接账户，不自动下单。</div>
+  </div>
+  <a id="officialLink" class="official-link" href="https://www.binance.com/en/trading-bots/futures/grid/MUUSDT" target="_blank" rel="noopener noreferrer">打开 Binance Manual ↗</a>
+</div>
+
+<div class="panel">
+  <div class="panel-title"><span>分析条件</span><span>Funding：不纳入模型</span></div>
+  <div class="controls">
+    <div class="field">
+      <label for="symbol">Symbol</label>
+      <select id="symbol"><option value="MUUSDT">MUUSDT Perp</option></select>
+    </div>
+    <div class="field">
+      <label for="investment">Investment (USDT)</label>
+      <input id="investment" type="number" min="5" step="1000" value="100000">
+      <div class="hint">默认 100,000 USDT 保证金投入</div>
+    </div>
+    <div class="field">
+      <label for="leverage">Leverage</label>
+      <select id="leverage">
+        <option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>
+        <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
+        <option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option>
+      </select>
+      <div class="hint">仅按用户选择测算，不推荐杠杆</div>
+    </div>
+    <div class="field">
+      <label for="feeBps">Maker Fee / Side (bp)</label>
+      <input id="feeBps" type="number" min="0" max="99.9" step="0.1" value="1">
+      <div class="hint">1 bp = 0.01%，往返扣除 2 bp</div>
+    </div>
+    <button id="analyzeBtn" class="btn" type="button">重新分析</button>
+  </div>
+</div>
+
+<div id="status" class="status-bar loading"><span class="dot"></span><span>正在获取过去一周的 10,080 根 1m Kline…</span></div>
+
+<main id="results" class="hidden">
+  <div class="stats">
+    <div class="stat"><div class="label">Mark Price</div><div id="statMark" class="value yellow">—</div><div id="statBidAsk" class="sub">—</div></div>
+    <div class="stat"><div class="label">ER · 24h / 5m</div><div id="statEr24" class="value green">—</div><div class="sub">当前模式判断</div></div>
+    <div class="stat"><div class="label">ER · 7d / 5m</div><div id="statEr7d" class="value blue">—</div><div class="sub">一周结构背景</div></div>
+    <div class="stat"><div class="label">Recommended Mode</div><div id="statMode" class="value green">—</div><div id="statState" class="sub">—</div></div>
+    <div class="stat"><div class="label">Recommended Gap</div><div id="statGap" class="value purple">—</div><div id="statProfit" class="sub">—</div></div>
+    <div class="stat"><div class="label">Bid / Ask Spread</div><div id="statSpread" class="value cyan">—</div><div class="sub">展示，不从 Maker 收益扣除</div></div>
+  </div>
+
+  <div class="two-col">
+    <section class="recommendation">
+      <h2>推荐配置</h2>
+      <div class="recommendation-grid">
+        <div class="rec-item"><div class="label">Lower</div><div id="recLower" class="value">—</div></div>
+        <div class="rec-item"><div class="label">Upper</div><div id="recUpper" class="value">—</div></div>
+        <div class="rec-item"><div class="label">Number of Grids</div><div id="recGrids" class="value">—</div></div>
+        <div class="rec-item"><div class="label">Qty / Order</div><div id="recQty" class="value">—</div></div>
+        <div class="rec-item"><div class="label">7d 日均有效往返</div><div id="recDailyTrips" class="value green">—</div></div>
+        <div class="rec-item"><div class="label">7d 总有效往返</div><div id="recTotalTrips" class="value">—</div></div>
+        <div class="rec-item"><div class="label">Daily HarvestScore</div><div id="recScore" class="value yellow">—</div></div>
+        <div class="rec-item"><div class="label">滚动24h出界风险</div><div id="recRisk" class="value">—</div></div>
+      </div>
+      <div id="reason" class="reason">—</div>
+    </section>
+
+    <aside class="manual">
+      <h2>Binance Manual 参数卡</h2>
+      <div class="manual-sub">字段名称与官方手动创建页对应；账户相关字段不伪造。</div>
+      <div class="manual-row"><span>Symbol</span><span id="mSymbol">MUUSDT Perp</span></div>
+      <div class="manual-row"><span>Mode / Direction</span><span><span id="mMode" class="badge">Manual · Neutral</span></span></div>
+      <div class="manual-row"><span>Grid Type</span><span>Arithmetic</span></div>
+      <div class="manual-row"><span>Price Range · Lower</span><span id="mLower">—</span></div>
+      <div class="manual-row"><span>Price Range · Upper</span><span id="mUpper">—</span></div>
+      <div class="manual-row"><span>Number of Grids</span><span id="mGrids">—</span></div>
+      <div class="manual-row"><span>Profit/grid (Fees deducted)</span><span id="mProfit">—</span></div>
+      <div class="manual-row"><span>Investment</span><span id="mInvestment">—</span></div>
+      <div class="manual-row"><span>Leverage</span><span id="mLeverage">—</span></div>
+      <div class="manual-row"><span>Qty/Order <small>（估算）</small></span><span id="mQty">—</span></div>
+      <div class="manual-row"><span>Total Investment <small>（精度调整后）</small></span><span id="mTotal">—</span></div>
+      <div class="manual-row"><span>Available</span><span>—（未连接账户）</span></div>
+      <div class="manual-row"><span>Est. Liq. Price (Long / Short)</span><span>—（需账户状态）</span></div>
+      <div class="manual-row"><span>Margin Mode</span><span>Cross</span></div>
+      <div class="manual-row"><span>Grid Trigger</span><span>Immediate</span></div>
+      <div class="manual-row"><span>Trailing Up / Down</span><span><span class="badge off">Off</span></span></div>
+      <div class="manual-row"><span>TP/SL · Auto-Add Margin</span><span><span class="badge off">Off</span></span></div>
+      <button id="copyBtn" class="copy-btn" type="button">复制全部 Binance 参数</button>
+    </aside>
+  </div>
+
+  <h2 class="section-title"><span>Gap 扫描</span><small>推荐 Range 下的 0.4%–1.2% 候选</small></h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Target Gap</th><th>实际 Gap@Mark</th><th>Grids</th><th>日均往返</th><th>7d 总往返</th><th>网格利用率</th><th>净 Profit/Grid</th><th>Qty/Order</th><th>Daily Score</th><th>风险调整</th></tr></thead>
+    <tbody id="gapBody"></tbody>
+  </table></div>
+
+  <h2 class="section-title"><span>Range 比较</span><small>每个 Range 取风险调整分数最高的 Gap</small></h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Range</th><th>Lower / Upper</th><th>Best Gap</th><th>Grids</th><th>日均往返</th><th>网格利用率</th><th>出界风险</th><th>Daily Score</th><th>风险调整</th></tr></thead>
+    <tbody id="rangeBody"></tbody>
+  </table></div>
+
+  <h2 class="section-title"><span>最近一周逐日结构</span><small>每天独立建网格，不跨日制造虚假穿格</small></h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>24h 窗口起点（UTC）</th><th>有效往返次数</th><th>网格利用率</th><th>是否出界</th></tr></thead>
+    <tbody id="dailyBody"></tbody>
+  </table></div>
+
+  <h2 class="section-title"><span>HarvestScore 排名</span><small>按 Daily HarvestScore 排序，风险调整分单列，Funding 不参与</small></h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Range</th><th>Target Gap</th><th>Lower / Upper</th><th>Grids</th><th>日均往返</th><th>Profit/Grid</th><th>Daily Score</th><th>7d Score</th><th>风险调整</th></tr></thead>
+    <tbody id="rankBody"></tbody>
+  </table></div>
+
+  <h2 class="section-title"><span>模型与数据透明度</span></h2>
+  <div class="panel">
+    <div class="method-grid">
+      <div class="method-card"><b>有效往返</b>相邻网格第一次单向穿越只记录方向；之后反向完整穿越才完成一次买卖配对。单边连续穿格不会计为收益。<div class="formula">Effective Trips = Σ alternating full grid traversals</div></div>
+      <div class="method-card"><b>单格净收益</b>使用 Binance Manual 的 Arithmetic 等距价格网格，不同价格层的收益率不同，因此展示最小值至最大值。<div class="formula">Net Rateᵢ = (Pᵢ₊₁ − Pᵢ) / Pᵢ − 2 × Fee/Side</div></div>
+      <div class="method-card"><b>HarvestScore</b>基于一周日均有效往返、精度调整后的单格名义资金和平均净单格收益率。它是结构比较分数，不是收益承诺。<div class="formula">Score/day = Avg Trips/day × Notional/Grid × Avg Net Rate</div></div>
+      <div class="method-card"><b>ER</b>由一周 1m Kline 本地聚合成 5m 收盘路径。ER≤0.20 为震荡，0.20–0.35 为混合，ER&gt;0.35 不建议 Neutral Grid。<div class="formula">ER = |P_end − P_start| / Σ|ΔP|</div></div>
+      <div class="method-card"><b>Range 风险</b>在一周数据上每6小时启动一个完整的未来24小时窗口，统计高低价突破 ±6% / ±8% / ±10% 的比例。风险调整分用于综合推荐；HarvestScore 排名仍按原始 Daily Score。<div class="formula">Risk-adjusted = Daily Score × (1 − Breach Risk)</div></div>
+      <div class="method-card"><b>杠杆与 Funding</b>杠杆只按用户选择放大名义资金，不作为推荐目标。Funding 按需求完全排除；Spread 只作流动性提示，不从 Maker 收益重复扣除。</div>
+    </div>
+  </div>
+  <div class="panel data-note" id="dataNote">—</div>
+  <div class="disclaimer">本工具仅分析公开市场数据和参数结构，不连接 Binance 账户、不创建订单，也不构成投资建议。历史波动结构不能保证未来收益。</div>
+</main>
+
+<script>
+let latestData = null;
+
+const $ = id => document.getElementById(id);
+const fmt = (value, digits=2) => Number(value).toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+const pct = (value, digits=2) => `${fmt(Number(value)*100,digits)}%`;
+const money = (value, digits=2) => `${fmt(value,digits)} USDT`;
+const safe = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+const utcWindow = value => value ? String(value).replace('T',' ').replace('Z',' UTC') : '—';
+
+function setStatus(type, message){
+  $('status').className = `status-bar ${type}`;
+  $('status').innerHTML = `<span class="dot"></span><span>${safe(message)}</span>`;
+}
+
+function price(value, data){
+  return fmt(value, data.contractRules.priceDecimals);
+}
+
+function quantity(value, data){
+  return fmt(value, data.contractRules.quantityDecimals);
+}
+
+function profitRange(row){
+  return `${pct(row.profitGridMin,3)} – ${pct(row.profitGridMax,3)}`;
+}
+
+function render(data){
+  latestData = data;
+  const rec = data.recommendation;
+  const market = data.market;
+  const trend = data.trend;
+  const assumptions = data.assumptions;
+  const baseAsset = data.contractRules.baseAsset;
+
+  $('officialLink').href = data.officialManualUrl;
+  $('statMark').textContent = price(market.markPrice,data);
+  $('statBidAsk').textContent = `Bid ${price(market.bid,data)} / Ask ${price(market.ask,data)}`;
+  $('statEr24').textContent = fmt(trend.er24h,3);
+  $('statEr7d').textContent = fmt(trend.er7d,3);
+  $('statMode').textContent = trend.recommendedMode;
+  $('statMode').className = `value ${trend.level === 'avoid' ? 'red' : trend.level === 'caution' ? 'yellow' : 'green'}`;
+  $('statState').textContent = `${trend.state} · 阈值 0.20 / 0.35`;
+  $('statGap').textContent = pct(rec.targetGapRate,1);
+  $('statProfit').textContent = `净 ${profitRange(rec)}`;
+  $('statSpread').textContent = pct(market.spreadRate,4);
+
+  $('recLower').textContent = price(rec.lower,data);
+  $('recUpper').textContent = price(rec.upper,data);
+  $('recGrids').textContent = rec.numberOfGrids;
+  $('recQty').textContent = `${quantity(rec.quantityPerOrder,data)} ${baseAsset}`;
+  $('recDailyTrips').textContent = fmt(rec.averageRoundTripsPerDay,1);
+  $('recTotalTrips').textContent = fmt(rec.totalRoundTrips,0);
+  $('recScore').textContent = money(rec.dailyHarvestScore,2);
+  $('recRisk').textContent = pct(rec.outOfRangeRisk,1);
+  $('recRisk').className = `value ${rec.outOfRangeRisk > .4 ? 'red' : rec.outOfRangeRisk > .2 ? 'yellow' : 'green'}`;
+  $('reason').textContent = rec.reason;
+
+  $('mSymbol').textContent = `${data.symbol} Perp`;
+  $('mMode').textContent = rec.mode === '不建议开网格' ? '不建议创建 · 仅观察' : 'Manual · Neutral';
+  $('mMode').className = `badge${rec.mode === '不建议开网格' ? ' off' : ''}`;
+  $('mLower').textContent = price(rec.lower,data);
+  $('mUpper').textContent = price(rec.upper,data);
+  $('mGrids').textContent = rec.numberOfGrids;
+  $('mProfit').textContent = profitRange(rec);
+  $('mInvestment').textContent = money(assumptions.investment,2);
+  $('mLeverage').textContent = `${assumptions.leverage}x`;
+  $('mQty').textContent = `${quantity(rec.quantityPerOrder,data)} ${baseAsset}`;
+  $('mTotal').textContent = money(rec.estimatedTotalInvestment,2);
+
+  $('gapBody').innerHTML = data.gapAnalysis.map(row => `
+    <tr class="${row.targetGapRate === rec.targetGapRate ? 'best' : ''}">
+      <td>${pct(row.targetGapRate,1)}</td><td>${pct(row.actualGapAtMark,3)}</td><td>${row.numberOfGrids}</td>
+      <td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${fmt(row.totalRoundTrips,0)}</td>
+      <td>${pct(row.averageUtilization,1)}</td><td>${profitRange(row)}</td>
+      <td>${quantity(row.quantityPerOrder,data)} ${safe(baseAsset)}</td><td>${money(row.dailyHarvestScore,2)}</td>
+      <td>${money(row.riskAdjustedScore,2)}</td>
+    </tr>`).join('');
+
+  $('rangeBody').innerHTML = data.rangeAnalysis.map(row => `
+    <tr class="${row.rangeRate === rec.rangeRate ? 'best' : ''}">
+      <td>±${fmt(row.rangeRate*100,0)}%</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
+      <td>${pct(row.targetGapRate,1)}</td><td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td>
+      <td>${pct(row.averageUtilization,1)}</td><td>${pct(row.outOfRangeRisk,1)}</td>
+      <td>${money(row.dailyHarvestScore,2)}</td><td>${money(row.riskAdjustedScore,2)}</td>
+    </tr>`).join('');
+
+  $('dailyBody').innerHTML = rec.days.map(row => `
+    <tr><td>${safe(utcWindow(row.windowStart))}</td><td>${fmt(row.roundTrips,0)}</td><td>${pct(row.utilization,1)}</td>
+    <td class="${row.breached ? 'yes' : 'no'}">${row.breached ? '是' : '否'}</td></tr>`).join('');
+
+  $('rankBody').innerHTML = data.rankings.map((row,index) => `
+    <tr class="${index === 0 ? 'best' : ''}"><td>${index+1}</td><td>±${fmt(row.rangeRate*100,0)}%</td>
+    <td>${pct(row.targetGapRate,1)}</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
+    <td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${profitRange(row)}</td>
+    <td>${money(row.dailyHarvestScore,2)}</td><td>${money(row.total7dHarvestScore,2)}</td><td>${money(row.riskAdjustedScore,2)}</td></tr>`).join('');
+
+  const coverage = data.dataCoverage;
+  $('dataNote').innerHTML = `<b>数据覆盖：</b>${safe(coverage.from)} 至 ${safe(coverage.to)} · `+
+    `${fmt(coverage.klineCount,0)} / ${fmt(coverage.expectedKlineCount,0)} 根 1m Kline `+
+    `（完整度 ${pct(coverage.completeness,2)}）· ${coverage.dailyWindows} 个独立24h窗口 · `+
+    `ER 使用 ${safe(coverage.erResampleInterval)} · 最近 aggTrades ${fmt(coverage.aggTradeCount,0)} 条 `+
+    `（${safe(coverage.aggTradeFrom)} 至 ${safe(coverage.aggTradeTo)}）· `+
+    `其中 ${fmt(coverage.aggTradesAfterLastClose,0)} 条补齐当前未完成分钟 · `+
+    `接口缓存：${coverage.cacheHit ? '命中' : '本次刷新'}。<br>`+
+    `<b>合约约束：</b>tickSize ${data.contractRules.tickSize} · stepSize ${data.contractRules.stepSize} · `+
+    `minQty ${data.contractRules.minQty} ${safe(baseAsset)} · minNotional ${data.contractRules.minNotional} USDT。`;
+
+  $('results').classList.remove('hidden');
+}
+
+async function analyze(forceRefresh=false){
+  const investment = Number($('investment').value);
+  const leverage = Number($('leverage').value);
+  const feeBps = Number($('feeBps').value);
+  if(!Number.isFinite(investment) || investment <= 0){setStatus('err','Investment 必须大于 0');return}
+  if(!Number.isInteger(leverage) || leverage < 1 || leverage > 10){setStatus('err','Leverage 必须为 1–10x');return}
+  if(!Number.isFinite(feeBps) || feeBps < 0){setStatus('err','手续费不能为负数');return}
+
+  $('analyzeBtn').disabled = true;
+  setStatus('loading','正在获取并分析过去一周的 10,080 根 1m Kline…');
+  try{
+    const params = new URLSearchParams({symbol:$('symbol').value,investment:String(investment),leverage:String(leverage),feeBps:String(feeBps)});
+    if(forceRefresh) params.set('refresh','1');
+    const response = await fetch(`/api/grid-optimize?${params}`);
+    const payload = await response.json();
+    if(!response.ok || !payload.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    render(payload.data);
+    setStatus('ok',`分析完成 · ${payload.data.generatedAt} · 一周数据完整度 ${pct(payload.data.dataCoverage.completeness,2)}`);
+  }catch(error){
+    setStatus('err',`分析失败：${error.message}`);
+  }finally{
+    $('analyzeBtn').disabled = false;
+  }
+}
+
+$('analyzeBtn').addEventListener('click',()=>analyze(true));
+$('copyBtn').addEventListener('click',async()=>{
+  if(!latestData) return;
+  const d=latestData,r=d.recommendation,a=d.assumptions;
+  const baseAsset=d.contractRules.baseAsset;
+  const text=[
+    `Symbol: ${d.symbol} Perp`,`Recommendation: ${r.mode}`,
+    `Mode: Manual`,`Direction: Neutral`,`Grid Type: Arithmetic`,
+    `Lower: ${price(r.lower,d)}`,`Upper: ${price(r.upper,d)}`,
+    `Number of Grids: ${r.numberOfGrids}`,`Profit/grid (Fees deducted): ${profitRange(r)}`,
+    `Investment: ${fmt(a.investment,2)} USDT`,`Leverage: ${a.leverage}x`,
+    `Qty/Order (estimated): ${quantity(r.quantityPerOrder,d)} ${baseAsset}`,`Margin Mode: Cross`,
+    `Grid Trigger: Immediate`,`Trailing Up: Off`,`Trailing Down: Off`,`TP/SL: Off`,`Auto-Add Margin: Off`
+  ].join('\n');
+  try{await navigator.clipboard.writeText(text);$('copyBtn').textContent='已复制';setTimeout(()=>$('copyBtn').textContent='复制全部 Binance 参数',1500)}
+  catch(_){$('copyBtn').textContent='复制失败，请手工复制'}
+});
+
+analyze(false);
+</script>
+</body>
+</html>

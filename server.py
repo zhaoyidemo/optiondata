@@ -10,6 +10,15 @@ from urllib.parse import urlencode
 import requests
 from flask import Flask, jsonify, request, send_from_directory
 
+from grid_optimizer import (
+    DEFAULT_FEE_RATE,
+    DEFAULT_INVESTMENT,
+    DEFAULT_LEVERAGE,
+    MAX_STOCK_PERP_LEVERAGE,
+    SUPPORTED_GRID_SYMBOLS,
+    optimize_grid,
+)
+
 app = Flask(__name__, static_folder="static")
 
 BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", "")
@@ -428,6 +437,11 @@ def options_page():
     return send_from_directory("static", "options.html")
 
 
+@app.route("/grid")
+def grid_page():
+    return send_from_directory("static", "grid.html")
+
+
 @app.route("/api/health")
 def health():
     return jsonify({
@@ -509,6 +523,38 @@ def api_deribit_compare():
         tb = traceback.format_exc()
         print(f"[ERROR] /api/deribit-compare?coin={coin}\n{tb}")
         return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
+
+
+@app.route("/api/grid-optimize")
+def api_grid_optimize():
+    symbol = request.args.get("symbol", "MUUSDT").upper().strip()
+    if symbol not in SUPPORTED_GRID_SYMBOLS:
+        return jsonify({"ok": False, "error": f"Unsupported grid symbol: {symbol}"}), 400
+
+    try:
+        investment = float(request.args.get("investment", DEFAULT_INVESTMENT))
+        leverage = int(request.args.get("leverage", DEFAULT_LEVERAGE))
+        fee_bps = float(request.args.get("feeBps", DEFAULT_FEE_RATE * 10000))
+        force_refresh = request.args.get("refresh", "0") == "1"
+
+        if not 1 <= leverage <= MAX_STOCK_PERP_LEVERAGE:
+            raise ValueError(
+                f"Leverage must be between 1 and {MAX_STOCK_PERP_LEVERAGE}"
+            )
+        data = optimize_grid(
+            symbol=symbol,
+            investment=investment,
+            leverage=leverage,
+            fee_rate=fee_bps / 10000,
+            force_refresh=force_refresh,
+        )
+        return jsonify({"ok": True, "data": data})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[ERROR] /api/grid-optimize?symbol={symbol}\n{tb}")
+        return jsonify({"ok": False, "error": str(e)}), 502
 
 
 if __name__ == "__main__":

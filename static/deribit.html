@@ -23,14 +23,14 @@ a{color:var(--purple)}
 /* nav bar */
 .nav-bar{
   display:flex;align-items:center;gap:0;
-  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);
+  padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto;
 }
 .nav-link{
   padding:8px 20px;font-size:.8rem;color:var(--text2);
   text-decoration:none;border-radius:6px 6px 0 0;
   border:1px solid transparent;border-bottom:none;
   transition:all .15s;font-family:inherit;
-  position:relative;top:1px;
+  position:relative;top:1px;white-space:nowrap;
 }
 .nav-link:hover{color:var(--text)}
 .nav-link.active{
@@ -188,6 +188,7 @@ tr:hover{background:#ffffff06}
   <a class="nav-link" href="/">双币对比</a>
   <a class="nav-link" href="/options">币安期权行情</a>
   <a class="nav-link active" href="/deribit">Deribit期权行情</a>
+  <a class="nav-link" href="/grid">&#27704;&#32493;&#32593;&#26684;&#20248;&#21270;</a>
 </nav>
 
 <div class="header">
