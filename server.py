@@ -14,7 +14,7 @@ from grid_optimizer import (
     DEFAULT_FEE_RATE,
     DEFAULT_INVESTMENT,
     DEFAULT_LEVERAGE,
-    MAX_STOCK_PERP_LEVERAGE,
+    GRID_SYMBOL_CONFIGS,
     SUPPORTED_GRID_SYMBOLS,
     optimize_grid,
 )
@@ -535,18 +535,18 @@ def api_grid_optimize():
         investment = float(request.args.get("investment", DEFAULT_INVESTMENT))
         leverage = int(request.args.get("leverage", DEFAULT_LEVERAGE))
         fee_bps = float(request.args.get("feeBps", DEFAULT_FEE_RATE * 10000))
-        force_refresh = request.args.get("refresh", "0") == "1"
 
-        if not 1 <= leverage <= MAX_STOCK_PERP_LEVERAGE:
+        max_leverage = GRID_SYMBOL_CONFIGS[symbol]["maxLeverage"]
+        if not 1 <= leverage <= max_leverage:
             raise ValueError(
-                f"Leverage must be between 1 and {MAX_STOCK_PERP_LEVERAGE}"
+                f"Leverage must be between 1 and {max_leverage}"
             )
         data = optimize_grid(
             symbol=symbol,
             investment=investment,
             leverage=leverage,
             fee_rate=fee_bps / 10000,
-            force_refresh=force_refresh,
+            force_refresh=False,
         )
         return jsonify({"ok": True, "data": data})
     except ValueError as e:

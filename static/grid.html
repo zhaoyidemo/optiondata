@@ -13,6 +13,7 @@
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 20px 28px}
 a{color:var(--purple)}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #818cf866;outline-offset:2px}
 .nav-bar{display:flex;align-items:center;gap:0;padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto}
 .nav-link{padding:8px 20px;font-size:.84rem;color:var(--text2);text-decoration:none;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none;white-space:nowrap;position:relative;top:1px}
 .nav-link:hover{color:var(--text)}
@@ -32,7 +33,7 @@ a{color:var(--purple)}
 .field label{display:block;font-size:.74rem;color:var(--text2);margin-bottom:6px}
 .field input,.field select{width:100%;height:40px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:.82rem;padding:0 10px}
 .field input:focus,.field select:focus{outline:none;border-color:var(--purple)}
-.field .hint{font-size:.68rem;color:#718096;margin-top:5px;line-height:1.45}
+.field .hint{font-size:.72rem;color:var(--text2);margin-top:5px;line-height:1.5}
 .btn{height:40px;padding:0 18px;border:1px solid var(--green);border-radius:6px;background:var(--green);color:var(--bg);font:inherit;font-size:.82rem;font-weight:700;cursor:pointer}
 .btn:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.5;cursor:wait}
@@ -42,6 +43,13 @@ a{color:var(--purple)}
 .status-bar.err{background:#dc262622;border:1px solid #dc262644;color:var(--red)}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
 .loading .dot{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.25}}
+.path-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 15px;border:1px solid var(--border);border-radius:9px;background:var(--surface);margin-bottom:18px;font-size:.78rem;line-height:1.55}
+.path-banner strong{display:block;color:var(--text);font-size:.82rem}.path-banner span{color:var(--text2)}
+.path-banner.ready{border-color:#4ade8044}.path-banner.ready strong{color:var(--green)}
+.path-banner.loading,.path-banner.refreshing{border-color:#60a5fa44}.path-banner.loading strong,.path-banner.refreshing strong{color:var(--blue)}
+.path-banner.error{border-color:#fbbf2444}.path-banner.error strong{color:var(--yellow)}
+.path-progress{width:180px;height:7px;background:#0f1117;border-radius:999px;overflow:hidden;flex:none}
+.path-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .3s ease}
 .stats{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:10px;margin-bottom:18px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px 15px;min-height:88px}
 .stat .label{font-size:.72rem;color:var(--text2);margin-bottom:7px;line-height:1.35}
@@ -50,12 +58,17 @@ a{color:var(--purple)}
 .green{color:var(--green)}.yellow{color:var(--yellow)}.blue{color:var(--blue)}.purple{color:var(--purple)}.red{color:var(--red)}.cyan{color:var(--cyan)}
 .two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:18px}
 .recommendation{background:linear-gradient(135deg,#4ade800d,#818cf80d);border:1px solid #4ade8044;border-radius:10px;padding:18px}
-.recommendation h2{font-size:1rem;color:var(--green);margin-bottom:14px}
+.recommendation-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.recommendation h2{font-size:1rem;color:var(--green)}
+.basis-badge{padding:3px 8px;border-radius:999px;background:#4ade8015;color:var(--green);font-size:.7rem}
 .recommendation-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .rec-item{background:#0f111799;border:1px solid var(--border);border-radius:7px;padding:11px}
 .rec-item .label{font-size:.69rem;color:var(--text2);margin-bottom:5px;line-height:1.4}
 .rec-item .value{font-size:.95rem;font-weight:700}
+.rec-item .note{font-size:.72rem;color:var(--text2);line-height:1.5;margin-top:5px;font-weight:400}
 .reason{font-size:.8rem;line-height:1.75;color:var(--text2);padding-top:12px;border-top:1px solid var(--border)}
+.steady-box{margin-top:13px;padding:12px 13px;border:1px solid #60a5fa44;background:#60a5fa0d;border-radius:8px;font-size:.76rem;line-height:1.65;color:var(--text2)}
+.steady-box b{display:block;color:var(--blue);margin-bottom:4px}.steady-values{color:var(--text);font-weight:600;margin-bottom:3px}
 .manual{background:var(--surface);border:1px solid #fbbf2444;border-radius:10px;padding:18px}
 .manual h2{font-size:1rem;color:var(--yellow);margin-bottom:5px}
 .manual-sub{font-size:.7rem;color:var(--text2);margin-bottom:13px;line-height:1.55}
@@ -63,6 +76,7 @@ a{color:var(--purple)}
 .manual-row:last-of-type{border-bottom:none}
 .manual-row span:first-child{color:var(--text2)}
 .manual-row span:last-child{text-align:right;font-weight:600}
+.manual-group{margin-top:11px;padding:9px 0 3px;color:var(--yellow);font-size:.72rem;font-weight:700;border-bottom:1px solid #fbbf2433}
 .badge{display:inline-block;padding:2px 7px;border-radius:4px;background:#4ade8022;color:var(--green);font-size:.68rem}
 .badge.off{background:#64748b22;color:var(--text2)}
 .copy-btn{width:100%;height:36px;margin-top:12px;border:1px solid var(--yellow);border-radius:6px;background:transparent;color:var(--yellow);font:inherit;font-size:.76rem;cursor:pointer}
@@ -71,6 +85,7 @@ a{color:var(--purple)}
 .section-title small{font-size:.7rem;color:var(--text2);font-weight:400}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow-x:auto;margin-bottom:18px}
 table{width:100%;border-collapse:collapse;font-size:.75rem}
+caption.sr-only,.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 th{padding:11px 10px;text-align:right;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 td{padding:9px 10px;border-bottom:1px solid #2a2d3a99;text-align:right;white-space:nowrap}
@@ -89,10 +104,10 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 .details-panel[open]>summary::after{content:'收起'}
 .details-panel[open]>summary{padding-bottom:13px;border-bottom:1px solid var(--border)}
 .details-intro{font-size:.74rem;color:var(--text2);line-height:1.7;margin:13px 0}
-.disclaimer{font-size:.68rem;color:#718096;text-align:center;line-height:1.7;padding:16px 8px 0}
+.disclaimer{font-size:.72rem;color:var(--text2);text-align:center;line-height:1.7;padding:16px 8px 0}
 .hidden{display:none}
 @media(max-width:1150px){.controls{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}.method-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:680px){body{padding:0 12px 22px}.quick-guide{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.recommendation-grid{grid-template-columns:1fr 1fr}.method-grid{grid-template-columns:1fr}.nav-link{padding:8px 12px}.header h1{font-size:1.16rem}.panel-title{align-items:flex-start;flex-direction:column}}
+@media(max-width:680px){body{padding:0 12px 22px}.quick-guide{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.recommendation-grid{grid-template-columns:1fr 1fr}.method-grid{grid-template-columns:1fr}.nav-link{padding:8px 12px}.header h1{font-size:1.16rem}.panel-title{align-items:flex-start;flex-direction:column}.path-banner{align-items:flex-start;flex-direction:column}.path-progress{width:100%}.btn{min-height:44px}.copy-btn{min-height:44px}}
 </style>
 </head>
 <body>
@@ -126,22 +141,22 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
     </div>
     <div class="field">
       <label for="investment">投入保证金（USDT）</label>
-      <input id="investment" type="number" min="5" step="1000" value="100000">
-      <div class="hint">默认投入 100,000 USDT</div>
+      <input id="investment" type="number" min="5" step="1000" value="100000" aria-describedby="investmentHint">
+      <div id="investmentHint" class="hint">默认投入 100,000 USDT</div>
     </div>
     <div class="field">
       <label for="leverage">杠杆倍数</label>
-      <select id="leverage">
+      <select id="leverage" aria-describedby="leverageHint">
         <option value="1">1 倍</option><option value="2">2 倍</option><option value="3">3 倍</option>
         <option value="4">4 倍</option><option value="5">5 倍</option><option value="6">6 倍</option>
         <option value="7">7 倍</option><option value="8">8 倍</option><option value="9">9 倍</option><option value="10">10 倍</option>
       </select>
-      <div class="hint">由你手动选择，本工具不推荐倍数</div>
+      <div id="leverageHint" class="hint">由你手动选择，本工具不推荐倍数</div>
     </div>
     <div class="field">
       <label for="feeBps">单边挂单手续费（万分之几）</label>
-      <input id="feeBps" type="number" min="0" max="99.9" step="0.1" value="1">
-      <div class="hint">填 1 表示万分之一；完整买卖共扣万分之二</div>
+      <input id="feeBps" type="number" min="0" max="99.9" step="0.1" value="1" aria-describedby="feeHint">
+      <div id="feeHint" class="hint">填 1 表示万分之一；完整买卖共扣万分之二</div>
     </div>
     <button id="analyzeBtn" class="btn" type="button">更新测算结果</button>
   </div>
@@ -150,6 +165,10 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 <div id="status" class="status-bar loading" aria-live="polite"><span class="dot"></span><span>正在读取 MUUSDT 最近 7 天行情，通常需要几秒…</span></div>
 
 <main id="results" class="hidden">
+  <div id="pathBanner" class="path-banner loading" aria-live="polite">
+    <div><strong id="pathTitle">正在准备最近 24 小时精细成交路径</strong><span id="pathDetail">先显示 7 天保守结果，精细数据准备好后会自动更新。</span></div>
+    <div id="pathProgress" class="path-progress" role="progressbar" aria-label="精细成交路径准备进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+  </div>
   <div class="stats">
     <div class="stat"><div class="label">当前标记价格</div><div id="statMark" class="value yellow">—</div><div id="statBidAsk" class="sub">—</div></div>
     <div class="stat"><div class="label">近 24 小时单边趋势强度</div><div id="statEr24" class="value green">—</div><div class="sub">越低越适合中性网格</div></div>
@@ -161,18 +180,19 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 
   <div class="two-col">
     <section class="recommendation">
-      <h2>建议参数</h2>
+      <div class="recommendation-head"><h2>收益优先建议</h2><span class="basis-badge">按历史网格利润估算选择</span></div>
       <div class="recommendation-grid">
         <div class="rec-item"><div class="label">价格区间下限</div><div id="recLower" class="value">—</div></div>
         <div class="rec-item"><div class="label">价格区间上限</div><div id="recUpper" class="value">—</div></div>
         <div class="rec-item"><div class="label">网格数量</div><div id="recGrids" class="value">—</div></div>
         <div class="rec-item"><div class="label">每单数量（估算）</div><div id="recQty" class="value">—</div></div>
         <div class="rec-item"><div class="label">近 7 天日均有效往返</div><div id="recDailyTrips" class="value green">—</div></div>
-        <div class="rec-item"><div class="label">近 7 天累计有效往返</div><div id="recTotalTrips" class="value">—</div></div>
-        <div class="rec-item"><div class="label">日均收益测算值</div><div id="recScore" class="value yellow">—</div></div>
-        <div class="rec-item"><div class="label">24 小时出区间概率</div><div id="recRisk" class="value">—</div></div>
+        <div class="rec-item"><div class="label">最近 24 小时有效往返</div><div id="recLatestTrips" class="value">—</div><div id="recLatestMethod" class="note">—</div></div>
+        <div class="rec-item"><div class="label">历史日均网格利润估算</div><div id="recScore" class="value yellow">—</div><div class="note">按过去 7 天往返次数估算，不是已实现收益</div></div>
+        <div class="rec-item"><div class="label">历史 24 小时出界记录</div><div id="recRisk" class="value blue">—</div><div class="note">显示出界窗口数，不是未来概率</div></div>
       </div>
       <div id="reason" class="reason">—</div>
+      <div class="steady-box"><b>较少出界的参考方案</b><div id="steadyValues" class="steady-values">—</div><div id="steadyReason">—</div></div>
     </section>
 
     <aside class="manual">
@@ -187,39 +207,44 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
       <div class="manual-row"><span>每格净利润率 <small>Profit/grid</small></span><span id="mProfit">—</span></div>
       <div class="manual-row"><span>投入保证金 <small>Investment</small></span><span id="mInvestment">—</span></div>
       <div class="manual-row"><span>杠杆倍数 <small>Leverage</small></span><span id="mLeverage">—</span></div>
-      <div class="manual-row"><span>每单数量 <small>估算</small></span><span id="mQty">—</span></div>
-      <div class="manual-row"><span>实际占用保证金 <small>精度调整后</small></span><span id="mTotal">—</span></div>
-      <div class="manual-row"><span>可用余额</span><span>—（未连接账户）</span></div>
-      <div class="manual-row"><span>预计强平价</span><span>—（需账户状态）</span></div>
-      <div class="manual-row"><span>保证金模式</span><span>全仓（Cross）</span></div>
-      <div class="manual-row"><span>启动方式</span><span>立即启动</span></div>
-      <div class="manual-row"><span>跟随上移 / 下移</span><span><span class="badge off">关闭</span></span></div>
-      <div class="manual-row"><span>止盈止损 / 自动追加保证金</span><span><span class="badge off">关闭</span></span></div>
+      <div class="manual-row"><span>可用余额 <small>Available</small></span><span>—（未连接账户）</span></div>
+      <div class="manual-row"><span>每单数量 <small>Qty/Order · 模型估算</small></span><span id="mQty">—</span></div>
+      <div class="manual-row"><span>总投入 <small>Total Investment · 模型估算</small></span><span id="mTotal">—</span></div>
+      <div class="manual-row"><span>预计强平价（多）<small>Est. Liq. Price Long</small></span><span>—（需账户状态）</span></div>
+      <div class="manual-row"><span>预计强平价（空）<small>Est. Liq. Price Short</small></span><span>—（需账户状态）</span></div>
+      <div class="manual-row"><span>保证金模式 <small>Margin Mode</small></span><span>全仓（Cross）</span></div>
+      <div class="manual-group">高级设置</div>
+      <div class="manual-row"><span>跟随上移 <small>Trailing Up</small></span><span><span class="badge off">关闭</span></span></div>
+      <div class="manual-row"><span>跟随下移 <small>Trailing Down</small></span><span><span class="badge off">关闭</span></span></div>
+      <div class="manual-row"><span>网格启动条件 <small>Grid Trigger</small></span><span>立即</span></div>
+      <div class="manual-row"><span>止盈止损 <small>TP/SL</small></span><span><span class="badge off">关闭</span></span></div>
+      <div class="manual-row"><span>停止时平掉全部仓位 <small>Close all positions on stop</small></span><span><span class="badge off">关闭</span></span></div>
+      <div class="manual-row"><span>档位变化时自动追加保证金 <small>Auto-Add Margin on Bracket Change</small></span><span><span class="badge off">关闭</span></span></div>
       <button id="copyBtn" class="copy-btn" type="button">复制币安创建参数</button>
     </aside>
   </div>
 
   <h2 class="section-title"><span>网格间距对比</span><small>在建议价格区间内，比较 0.4% 至 1.2% 的每格间距</small></h2>
-  <div class="table-wrap"><table>
-    <thead><tr><th>目标间距</th><th>实际间距</th><th>网格数</th><th>日均有效往返</th><th>7 天累计往返</th><th>触达网格比例</th><th>每格净利润率</th><th>每单数量</th><th>日均测算值</th><th>考虑出界后</th></tr></thead>
+  <div class="table-wrap"><table><caption class="sr-only">不同网格间距的历史测算结果</caption>
+    <thead><tr><th scope="col">目标间距</th><th scope="col">实际间距</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">7 天累计往返</th><th scope="col">触达网格比例</th><th scope="col">每格净利润率</th><th scope="col">每单数量</th><th scope="col">历史日均利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="gapBody"></tbody>
   </table></div>
 
   <h2 class="section-title"><span>价格区间对比</span><small>分别比较当前价格上下 6%、8% 和 10% 的区间</small></h2>
-  <div class="table-wrap"><table>
-    <thead><tr><th>区间宽度</th><th>价格下限 / 上限</th><th>最佳间距</th><th>网格数</th><th>日均有效往返</th><th>触达网格比例</th><th>24 小时出界概率</th><th>日均测算值</th><th>考虑出界后</th></tr></thead>
+  <div class="table-wrap"><table><caption class="sr-only">不同价格区间的历史测算结果</caption>
+    <thead><tr><th scope="col">区间宽度</th><th scope="col">价格下限 / 上限</th><th scope="col">本区间收益最佳间距</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">触达网格比例</th><th scope="col">历史出界记录</th><th scope="col">历史日均利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="rangeBody"></tbody>
   </table></div>
 
   <h2 class="section-title"><span>近 7 个独立 24 小时窗口</span><small>每个窗口重新开始计算，避免跨窗口重复计数</small></h2>
-  <div class="table-wrap"><table>
-    <thead><tr><th>窗口开始时间（北京时间）</th><th>有效往返次数</th><th>触达网格比例</th><th>是否跑出区间</th></tr></thead>
+  <div class="table-wrap"><table><caption class="sr-only">最近七个独立24小时窗口的有效往返记录</caption>
+    <thead><tr><th scope="col">窗口开始时间（北京时间）</th><th scope="col">有效往返次数</th><th scope="col">计算路径</th><th scope="col">触达网格比例</th><th scope="col">是否跑出区间</th></tr></thead>
     <tbody id="dailyBody"></tbody>
   </table></div>
 
-  <h2 class="section-title"><span>参数组合排名</span><small>按日均收益测算值排序；资金费率不参与计算</small></h2>
-  <div class="table-wrap"><table>
-    <thead><tr><th>排名</th><th>区间宽度</th><th>每格间距</th><th>价格下限 / 上限</th><th>网格数</th><th>日均有效往返</th><th>每格净利润率</th><th>日均测算值</th><th>7 天累计测算值</th><th>考虑出界后</th></tr></thead>
+  <h2 class="section-title"><span>参数组合排名</span><small>按历史日均网格利润估算排序；资金费率不参与计算</small></h2>
+  <div class="table-wrap"><table><caption class="sr-only">按历史日均网格利润估算排列的参数组合</caption>
+    <thead><tr><th scope="col">排名</th><th scope="col">区间宽度</th><th scope="col">每格间距</th><th scope="col">价格下限 / 上限</th><th scope="col">网格数</th><th scope="col">日均有效往返</th><th scope="col">每格净利润率</th><th scope="col">历史日均利润估算</th><th scope="col">7 天网格利润估算</th><th scope="col">兼顾出界的比较分</th></tr></thead>
     <tbody id="rankBody"></tbody>
   </table></div>
 
@@ -227,11 +252,11 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
     <summary>想知道这些结果是怎么算出来的吗？</summary>
     <div class="details-intro">下面保留了完整计算口径，便于核对。普通使用时只看上方“当前建议”和“币安手动创建参数”即可。</div>
     <div class="method-grid">
-      <div class="method-card"><b>什么才算一次“有效往返”？</b>价格第一次单向穿过一格只记录方向；之后完整反向穿回，才算完成一次买卖配对。连续单边上涨或下跌不会被误算成网格收益。<div class="formula">有效往返 = 相邻价格格之间完成反向穿回的次数</div></div>
-      <div class="method-card"><b>每格利润怎样扣手续费？</b>使用币安的等差价格网格。每一格先计算价格差，再扣除买入和卖出两边的挂单手续费，因此页面展示的是扣费后的利润率范围。<div class="formula">每格净利润率 = 价格间距率 − 2 × 单边手续费率</div></div>
-      <div class="method-card"><b>“日均收益测算值”是什么？</b>内部名称为 HarvestScore，用来公平比较不同参数组合。它基于日均有效往返、每格资金和每格净利润率，不代表未来一定能获得的收益。<div class="formula">日均测算值 = 日均有效往返 × 每格名义资金 × 平均净利润率</div></div>
+      <div class="method-card"><b>什么才算一次“有效往返”？</b>价格第一次单向穿过一格只记录方向；之后完整反向穿回，才算完成一次买卖配对。最近一个窗口优先使用完整成交明细，其余窗口使用每分钟收盘价做偏保守的历史参照。<div class="formula">有效往返 = 相邻价格格之间完成反向穿回的次数</div></div>
+      <div class="method-card"><b>每格利润怎样扣手续费？</b>使用币安的等差价格网格。每一格分别计算真实价格差，扣除买入和卖出两边的挂单手续费；最后按各格实际往返次数加总，不再用一个平均值替代所有网格。<div class="formula">某格净利润率 = 该格价格间距率 − 2 × 单边手续费率</div></div>
+      <div class="method-card"><b>“历史日均网格利润估算”是什么？</b>把过去 7 个窗口中每一格完成的有效往返，乘以该格名义资金和净利润率后加总，再计算日均值。它不是已实现收益，也不是未来预期收益，只用于比较参数。<div class="formula">历史日均网格利润估算 = 每日各格利润估算之和 ÷ 7</div></div>
       <div class="method-card"><b>单边趋势强度是什么？</b>内部使用趋势效率 ER。数值越低，价格越来回震荡；越高则越偏向单边运行。20% 以下适合中性网格，超过 35% 时暂不建议开启。<div class="formula">ER = 首尾价格净变化 ÷ 价格路径总变化</div></div>
-      <div class="method-card"><b>出区间概率怎样评估？</b>在最近一周中，每隔 6 小时启动一个完整的未来 24 小时窗口，检查价格是否跑出候选区间。综合推荐会考虑该概率，原始排名仍按日均测算值。<div class="formula">考虑出界后的分数 = 日均测算值 ×（1 − 出区间概率）</div></div>
+      <div class="method-card"><b>“兼顾出界的比较分”是什么？</b>先记录最近一周滚动 24 小时窗口的历史出界情况，再用历史未出界窗口占比给参数打分。它只用于选出一个较少出界的参考方案，不参与收益优先主推荐；这个分数不是利润，也不是未来概率。<div class="formula">兼顾出界的比较分 = 历史日均网格利润估算 × 历史未出界窗口占比</div></div>
       <div class="method-card"><b>杠杆和其他费用怎样处理？</b>杠杆只按你选择的倍数放大名义资金，本工具不推荐杠杆。资金费率完全不计算；买卖价差只用于观察流动性，不再从挂单收益中重复扣除。</div>
     </div>
   </details>
@@ -244,11 +269,16 @@ tr.best{background:#4ade8008}tr.best td:first-child{color:var(--green);font-weig
 
 <script>
 let latestData = null;
+let finePollTimer = null;
+let finePollAttempts = 0;
+let analysisRequestId = 0;
 
 const $ = id => document.getElementById(id);
 const fmt = (value, digits=2) => Number(value).toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits});
 const pct = (value, digits=2) => `${fmt(Number(value)*100,digits)}%`;
 const money = (value, digits=2) => `${fmt(value,digits)} USDT`;
+const dailyMoney = (value, digits=2) => `${fmt(value,digits)} USDT / 天`;
+const comparisonScore = (value, digits=2) => `${fmt(value,digits)} 分`;
 const safe = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const chinaTime = value => value ? new Date(value).toLocaleString('zh-CN',{
   timeZone:'Asia/Shanghai',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'
@@ -277,13 +307,76 @@ function friendlyMode(trend){
   return '适合中性网格';
 }
 
+function pathMethodLabel(method){
+  if(method === 'aggTrades') return '完整成交路径';
+  if(method === 'aggTradesWith1mTail') return '成交路径 + 分钟尾部补齐';
+  return '1 分钟收盘保守路径';
+}
+
+function configureLeverage(maxLeverage){
+  const select = $('leverage');
+  const limit = Math.max(1,Number(maxLeverage)||1);
+  if(Number(select.dataset.max) === limit) return;
+  const current = Math.min(limit,Math.max(1,Number(select.value)||1));
+  select.innerHTML = Array.from({length:limit},(_,index)=>{
+    const value=index+1;
+    return `<option value="${value}">${value} 倍</option>`;
+  }).join('');
+  select.value = String(current);
+  select.dataset.max = String(limit);
+}
+
+function renderFinePath(data){
+  const coverage = data.dataCoverage;
+  const banner = $('pathBanner');
+  const progress = Math.max(0,Math.min(1,Number(coverage.finePathProgress)||0));
+  $('pathProgress').setAttribute('aria-valuenow',String(Math.round(progress*100)));
+  $('pathProgress').querySelector('span').style.width = `${Math.round(progress*100)}%`;
+
+  if(coverage.finePathUsed){
+    const refreshFailed = coverage.finePathRefreshFailed;
+    banner.className = `path-banner ${refreshFailed ? 'error' : coverage.finePathStatus === 'refreshing' ? 'refreshing' : 'ready'}`;
+    $('pathTitle').textContent = refreshFailed
+      ? '24 小时精细成交路径已启用，最近一次增量更新暂未成功'
+      : coverage.finePathStatus === 'refreshing' ? '24 小时精细成交路径已启用，正在增量更新' : '24 小时精细成交路径已完整启用';
+    const archiveSource = coverage.finePathArchiveDay ? `，其中 ${coverage.finePathArchiveDay} 使用币安官方日归档` : '';
+    const refreshNote = refreshFailed ? '；当前继续使用最近一次完整路径，稍后会自动重试' : '';
+    $('pathDetail').textContent = `已读取 ${fmt(coverage.finePathTradeCount,0)} 笔聚合成交${archiveSource}；当前推荐已使用这条路径${refreshNote}。`;
+    $('pathProgress').setAttribute('aria-valuenow','100');
+    $('pathProgress').querySelector('span').style.width = '100%';
+    clearTimeout(finePollTimer);
+    return;
+  }
+  if(coverage.finePathStatus === 'error'){
+    banner.className = 'path-banner error';
+    $('pathTitle').textContent = '精细成交路径暂时未能完成';
+    $('pathDetail').textContent = '当前结果使用 7 天 1 分钟收盘路径保守测算，稍后再次更新即可重试。';
+    clearTimeout(finePollTimer);
+    return;
+  }
+  banner.className = 'path-banner loading';
+  $('pathTitle').textContent = `正在准备 24 小时精细成交路径（${Math.round(progress*100)}%）`;
+  $('pathDetail').textContent = `首次需要按官方限频逐页读取，当前先显示透明的保守结果；已读取 ${fmt(coverage.finePathTradeCount,0)} 笔。`;
+}
+
+function scheduleFinePathPoll(data){
+  clearTimeout(finePollTimer);
+  const coverage = data.dataCoverage;
+  if(coverage.finePathUsed || coverage.finePathStatus === 'error' || finePollAttempts >= 100) return;
+  if(coverage.finePathStatus === 'loading' || coverage.finePathStatus === 'refreshing'){
+    finePollTimer = setTimeout(()=>{finePollAttempts += 1;analyze(true)},8000);
+  }
+}
+
 function render(data){
   latestData = data;
   const rec = data.recommendation;
+  const steady = data.steadyAlternative;
   const market = data.market;
   const trend = data.trend;
   const assumptions = data.assumptions;
   const baseAsset = data.contractRules.baseAsset;
+  configureLeverage(data.contractRules.maxLeverage);
 
   $('officialLink').href = data.officialManualUrl;
   $('statMark').textContent = price(market.markPrice,data);
@@ -302,11 +395,14 @@ function render(data){
   $('recGrids').textContent = rec.numberOfGrids;
   $('recQty').textContent = `${quantity(rec.quantityPerOrder,data)} ${baseAsset}`;
   $('recDailyTrips').textContent = fmt(rec.averageRoundTripsPerDay,1);
-  $('recTotalTrips').textContent = fmt(rec.totalRoundTrips,0);
-  $('recScore').textContent = money(rec.dailyHarvestScore,2);
-  $('recRisk').textContent = pct(rec.outOfRangeRisk,1);
-  $('recRisk').className = `value ${rec.outOfRangeRisk > .4 ? 'red' : rec.outOfRangeRisk > .2 ? 'yellow' : 'green'}`;
+  $('recLatestTrips').textContent = fmt(rec.latest24hRoundTrips,0);
+  $('recLatestMethod').textContent = pathMethodLabel(rec.latest24hPathMethod);
+  $('recScore').textContent = dailyMoney(rec.dailyHarvestScore,2);
+  $('recRisk').textContent = `${rec.riskBreaches} / ${rec.riskSamples}（${pct(rec.outOfRangeRisk,1)}）`;
+  $('recRisk').className = 'value blue';
   $('reason').textContent = rec.reason;
+  $('steadyValues').textContent = `区间上下 ±${fmt(steady.rangeRate*100,0)}% · 每格约 ${pct(steady.targetGapRate,1)} · ${steady.numberOfGrids} 格`;
+  $('steadyReason').textContent = steady.reason;
 
   $('mSymbol').textContent = `${data.symbol} 永续`;
   $('mMode').textContent = rec.mode === '不建议开网格' ? '仅供观察 · 暂不创建' : '手动 · 中性';
@@ -319,71 +415,97 @@ function render(data){
   $('mLeverage').textContent = `${assumptions.leverage} 倍`;
   $('mQty').textContent = `${quantity(rec.quantityPerOrder,data)} ${baseAsset}`;
   $('mTotal').textContent = money(rec.estimatedTotalInvestment,2);
+  renderFinePath(data);
 
   $('gapBody').innerHTML = data.gapAnalysis.map(row => `
     <tr class="${row.targetGapRate === rec.targetGapRate ? 'best' : ''}">
       <td>${pct(row.targetGapRate,1)}</td><td>${pct(row.actualGapAtMark,3)}</td><td>${row.numberOfGrids}</td>
       <td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${fmt(row.totalRoundTrips,0)}</td>
       <td>${pct(row.averageUtilization,1)}</td><td>${profitRange(row)}</td>
-      <td>${quantity(row.quantityPerOrder,data)} ${safe(baseAsset)}</td><td>${money(row.dailyHarvestScore,2)}</td>
-      <td>${money(row.riskAdjustedScore,2)}</td>
+      <td>${quantity(row.quantityPerOrder,data)} ${safe(baseAsset)}</td><td>${dailyMoney(row.dailyHarvestScore,2)}</td>
+      <td>${comparisonScore(row.riskAdjustedScore,2)}</td>
     </tr>`).join('');
 
   $('rangeBody').innerHTML = data.rangeAnalysis.map(row => `
     <tr class="${row.rangeRate === rec.rangeRate ? 'best' : ''}">
       <td>±${fmt(row.rangeRate*100,0)}%</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
       <td>${pct(row.targetGapRate,1)}</td><td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td>
-      <td>${pct(row.averageUtilization,1)}</td><td>${pct(row.outOfRangeRisk,1)}</td>
-      <td>${money(row.dailyHarvestScore,2)}</td><td>${money(row.riskAdjustedScore,2)}</td>
+      <td>${pct(row.averageUtilization,1)}</td><td>${row.riskBreaches} / ${row.riskSamples}（${pct(row.outOfRangeRisk,1)}）</td>
+      <td>${dailyMoney(row.dailyHarvestScore,2)}</td><td>${comparisonScore(row.riskAdjustedScore,2)}</td>
     </tr>`).join('');
 
   $('dailyBody').innerHTML = rec.days.map(row => `
-    <tr><td>${safe(chinaTime(row.windowStart))}</td><td>${fmt(row.roundTrips,0)}</td><td>${pct(row.utilization,1)}</td>
+    <tr><td>${safe(chinaTime(row.windowStart))}</td><td>${fmt(row.roundTrips,0)}</td><td>${pathMethodLabel(row.pathMethod)}</td><td>${pct(row.utilization,1)}</td>
     <td class="${row.breached ? 'yes' : 'no'}">${row.breached ? '是' : '否'}</td></tr>`).join('');
 
   $('rankBody').innerHTML = data.rankings.map((row,index) => `
     <tr class="${index === 0 ? 'best' : ''}"><td>${index+1}</td><td>±${fmt(row.rangeRate*100,0)}%</td>
     <td>${pct(row.targetGapRate,1)}</td><td>${price(row.lower,data)} / ${price(row.upper,data)}</td>
     <td>${row.numberOfGrids}</td><td>${fmt(row.averageRoundTripsPerDay,1)}</td><td>${profitRange(row)}</td>
-    <td>${money(row.dailyHarvestScore,2)}</td><td>${money(row.total7dHarvestScore,2)}</td><td>${money(row.riskAdjustedScore,2)}</td></tr>`).join('');
+    <td>${dailyMoney(row.dailyHarvestScore,2)}</td><td>${money(row.total7dHarvestScore,2)}</td><td>${comparisonScore(row.riskAdjustedScore,2)}</td></tr>`).join('');
 
   const coverage = data.dataCoverage;
+  const fineDescription = coverage.finePathUsed
+    ? `最近一个窗口已使用 ${fmt(coverage.finePathTradeCount,0)} 笔聚合成交；已完成日期来自币安官方日归档，当日数据来自公开 REST 接口增量，其余窗口使用 1 分钟收盘路径作保守参照。`
+    : `精细成交路径尚未完成，当前七个窗口均使用 1 分钟收盘路径作保守参照。`;
   $('dataNote').innerHTML = `<b>行情数据：</b>使用币安官方公开合约接口，完整读取 ${fmt(coverage.klineCount,0)} 根 1 分钟价格数据，`+
     `覆盖北京时间 ${safe(chinaTime(coverage.from))} 至 ${safe(chinaTime(coverage.to))}，数据完整度 ${pct(coverage.completeness,2)}。`+
-    `分析时拆成 ${coverage.dailyWindows} 个独立的 24 小时窗口，并用最近成交明细补齐当前尚未结束的一分钟。<br>`+
+    `分析时拆成 ${coverage.dailyWindows} 个独立的 24 小时窗口。${fineDescription}<br>`+
     `<b>合约最小单位：</b>价格最小变动 ${data.contractRules.tickSize} USDT；下单数量最小变动 ${data.contractRules.stepSize} ${safe(baseAsset)}；`+
-    `最小数量 ${data.contractRules.minQty} ${safe(baseAsset)}；最小名义金额 ${data.contractRules.minNotional} USDT。`;
+    `最小数量 ${data.contractRules.minQty} ${safe(baseAsset)}；最小名义金额 ${data.contractRules.minNotional} USDT。`+
+    `<br><b>资金与数量：</b>每单数量和总投入是按等额名义资金、当前标记价格及合约精度得到的模型估算；币安最终页面可能因内部保证金规则而不同。`;
 
   $('results').classList.remove('hidden');
+  scheduleFinePathPoll(data);
 }
 
-async function analyze(forceRefresh=false){
+async function analyze(background=false){
+  const requestId = ++analysisRequestId;
   const investment = Number($('investment').value);
   const leverage = Number($('leverage').value);
   const feeBps = Number($('feeBps').value);
+  const maxLeverage = Number($('leverage').dataset.max || 10);
   if(!Number.isFinite(investment) || investment <= 0){setStatus('err','投入保证金必须大于 0');return}
-  if(!Number.isInteger(leverage) || leverage < 1 || leverage > 10){setStatus('err','杠杆倍数必须在 1 至 10 倍之间');return}
-  if(!Number.isFinite(feeBps) || feeBps < 0){setStatus('err','单边手续费不能小于 0');return}
+  if(!Number.isInteger(leverage) || leverage < 1 || leverage > maxLeverage){setStatus('err',`杠杆倍数必须在 1 至 ${maxLeverage} 倍之间`);return}
+  if(!Number.isFinite(feeBps) || feeBps < 0 || feeBps >= 100){setStatus('err','单边手续费必须在 0（含）至 100（不含）个基点之间');return}
 
-  $('analyzeBtn').disabled = true;
-  setStatus('loading','正在读取并分析最近 7 天行情，通常需要几秒…');
+  if(!background){
+    clearTimeout(finePollTimer);
+    finePollAttempts = 0;
+    $('analyzeBtn').disabled = true;
+    $('results').setAttribute('aria-busy','true');
+    setStatus('loading','正在读取并分析最近 7 天行情，通常需要几秒…');
+  }
   try{
     const params = new URLSearchParams({symbol:$('symbol').value,investment:String(investment),leverage:String(leverage),feeBps:String(feeBps)});
-    if(forceRefresh) params.set('refresh','1');
     const response = await fetch(`/api/grid-optimize?${params}`);
     const payload = await response.json();
     if(!response.ok || !payload.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    if(requestId !== analysisRequestId) return;
     render(payload.data);
-    setStatus('ok',`测算完成 · 更新时间（北京时间）${chinaTime(payload.data.generatedAt)} · 7 天数据完整度 ${pct(payload.data.dataCoverage.completeness,2)}`);
+    const coverage = payload.data.dataCoverage;
+    const pathState = coverage.finePathUsed
+      ? coverage.finePathRefreshFailed ? '精细路径已启用，最近一次增量更新暂未成功' : '24 小时精细成交路径已启用'
+      : '精细成交路径准备中，暂用保守结果';
+    const staleState = coverage.marketDataStale ? ' · 当前使用最近一次可用行情' : '';
+    setStatus('ok',`测算完成 · ${pathState} · 更新时间（北京时间）${chinaTime(payload.data.generatedAt)}${staleState}`);
   }catch(error){
     console.error(error);
-    setStatus('err','暂时无法获取最新行情，请稍后再试');
+    if(requestId !== analysisRequestId) return;
+    if(!background){
+      setStatus('err','暂时无法获取最新行情，请稍后再试');
+    }else if(finePollAttempts < 100){
+      finePollTimer = setTimeout(()=>{finePollAttempts += 1;analyze(true)},8000);
+    }
   }finally{
-    $('analyzeBtn').disabled = false;
+    if(!background && requestId === analysisRequestId){
+      $('analyzeBtn').disabled = false;
+      $('results').setAttribute('aria-busy','false');
+    }
   }
 }
 
-$('analyzeBtn').addEventListener('click',()=>analyze(true));
+$('analyzeBtn').addEventListener('click',()=>analyze(false));
 $('copyBtn').addEventListener('click',async()=>{
   if(!latestData) return;
   const d=latestData,r=d.recommendation,a=d.assumptions;
@@ -394,8 +516,12 @@ $('copyBtn').addEventListener('click',async()=>{
     `价格下限（Lower）：${price(r.lower,d)}`,`价格上限（Upper）：${price(r.upper,d)}`,
     `网格数量（Number of Grids）：${r.numberOfGrids}`,`每格净利润率：${profitRange(r)}`,
     `投入保证金：${fmt(a.investment,2)} USDT`,`杠杆倍数：${a.leverage}x`,
-    `每单数量（估算）：${quantity(r.quantityPerOrder,d)} ${baseAsset}`,`保证金模式：全仓（Cross）`,
-    `启动方式：立即`,`跟随上移：关闭`,`跟随下移：关闭`,`止盈止损：关闭`,`自动追加保证金：关闭`
+    `可用余额（Available）：未连接账户`,
+    `每单数量（Qty/Order，模型估算）：${quantity(r.quantityPerOrder,d)} ${baseAsset}`,
+    `总投入（Total Investment，模型估算）：${fmt(r.estimatedTotalInvestment,2)} USDT`,
+    `预计强平价（多）：需账户状态`,`预计强平价（空）：需账户状态`,`保证金模式：全仓（Cross）`,
+    `跟随上移：关闭`,`跟随下移：关闭`,`网格启动条件：立即`,`止盈止损：关闭`,
+    `停止时平掉全部仓位：关闭`,`档位变化时自动追加保证金：关闭`
   ].join('\n');
   try{await navigator.clipboard.writeText(text);$('copyBtn').textContent='参数已复制';setTimeout(()=>$('copyBtn').textContent='复制币安创建参数',1500)}
   catch(_){$('copyBtn').textContent='复制失败，请手动选择复制'}
