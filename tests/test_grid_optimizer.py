@@ -34,6 +34,36 @@ from server import app
 
 
 class GridMathTests(unittest.TestCase):
+    def test_requested_symbols_and_range_widths_are_configured(self):
+        self.assertEqual(
+            tuple(grid_optimizer.GRID_SYMBOL_CONFIGS),
+            (
+                "MUUSDT",
+                "BMNRUSDT",
+                "CRWVUSDT",
+                "INTCUSDT",
+                "AAOIUSDT",
+                "SKHYUSDT",
+                "GOOGLUSDT",
+                "BTCUSDT",
+                "ETHUSDT",
+                "SPCXUSDT",
+            ),
+        )
+        self.assertEqual(grid_optimizer.GRID_SYMBOL_CONFIGS["BTCUSDT"]["maxLeverage"], 125)
+        self.assertEqual(grid_optimizer.GRID_SYMBOL_CONFIGS["ETHUSDT"]["maxLeverage"], 100)
+        self.assertTrue(
+            all(
+                config["maxLeverage"] == 10
+                for symbol, config in grid_optimizer.GRID_SYMBOL_CONFIGS.items()
+                if symbol not in {"BTCUSDT", "ETHUSDT"}
+            )
+        )
+        self.assertEqual(
+            grid_optimizer.RANGE_CANDIDATES,
+            (0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.30),
+        )
+
     def test_efficiency_ratio_distinguishes_trend_and_chop(self):
         self.assertEqual(efficiency_ratio([100, 101, 102, 103]), 1.0)
         self.assertAlmostEqual(efficiency_ratio([100, 101, 100, 101, 100]), 0.0)
@@ -159,6 +189,18 @@ class GridMathTests(unittest.TestCase):
 
 
 class GridMarketDataTests(unittest.TestCase):
+    def test_fine_path_cache_keeps_only_recent_completed_symbols(self):
+        with patch.dict(grid_optimizer._fine_path_states, {}, clear=True):
+            for index, symbol in enumerate(("A", "B", "C", "D"), start=1):
+                grid_optimizer._fine_path_states[symbol] = {
+                    "thread": None,
+                    "lastAccessAt": float(index),
+                }
+            with grid_optimizer._fine_path_lock:
+                grid_optimizer._trim_fine_path_states_locked(preserve_symbol="D")
+
+            self.assertEqual(set(grid_optimizer._fine_path_states), {"B", "C", "D"})
+
     @patch("grid_optimizer._attach_fine_path")
     @patch("grid_optimizer.fetch_server_time", side_effect=KeyError("serverTime"))
     @patch("grid_optimizer.time.time", return_value=100.0)
@@ -377,6 +419,10 @@ class GridMarketDataTests(unittest.TestCase):
         )
         self.assertFalse(result["assumptions"]["fundingIncluded"])
         self.assertIn("steadyAlternative", result)
+        self.assertEqual(
+            [row["rangeRate"] for row in result["rangeAnalysis"]],
+            list(grid_optimizer.RANGE_CANDIDATES),
+        )
         json.dumps(result, allow_nan=False)
 
 
@@ -388,13 +434,17 @@ class GridRouteTests(unittest.TestCase):
         response = self.client.get("/grid")
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn("MUUSDT", html)
+        for symbol in grid_optimizer.GRID_SYMBOL_CONFIGS:
+            self.assertIn(f'value="{symbol}"', html)
+        self.assertIn("币安永续网格参数助手", html)
+        self.assertIn("30%", html)
         self.assertIn("历史日均网格利润估算", html)
         self.assertIn("收益优先建议", html)
         self.assertIn("较少出界的参考方案", html)
         self.assertIn("兼顾出界的比较分", html)
         self.assertIn("停止时平掉全部仓位", html)
         self.assertIn("Auto-Add Margin on Bracket Change", html)
+        self.assertIn("实际可用倍数还会受币安名义金额档位限制", html)
         self.assertNotIn("考虑出界后", html)
         self.assertNotIn("按历史未出界比例折算", html)
         self.assertNotIn("按未出界比例折算", html)
@@ -402,10 +452,22 @@ class GridRouteTests(unittest.TestCase):
         response.close()
 
     def test_unsupported_symbol_is_rejected_without_network_call(self):
-        response = self.client.get("/api/grid-optimize?symbol=BTCUSDT")
+        response = self.client.get("/api/grid-optimize?symbol=SOLUSDT")
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.get_json()["ok"])
         response.close()
+
+    @patch("server.optimize_grid")
+    def test_crypto_symbols_accept_their_configured_leverage_limits(self, optimize_mock):
+        optimize_mock.side_effect = lambda **kwargs: {"symbol": kwargs["symbol"]}
+        for symbol, leverage in (("BTCUSDT", 125), ("ETHUSDT", 100)):
+            with self.subTest(symbol=symbol):
+                response = self.client.get(
+                    f"/api/grid-optimize?symbol={symbol}&leverage={leverage}"
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.get_json()["data"]["symbol"], symbol)
+                response.close()
 
     @patch("server.optimize_grid")
     def test_grid_api_passes_binance_manual_inputs(self, optimize_mock):

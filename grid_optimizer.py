@@ -27,10 +27,29 @@ import requests
 
 BINANCE_FAPI_BASE = os.environ.get("BINANCE_FAPI_BASE", "https://fapi.binance.com")
 BINANCE_DATA_BASE = os.environ.get("BINANCE_DATA_BASE", "https://data.binance.vision")
-GRID_SYMBOL_CONFIGS = {"MUUSDT": {"maxLeverage": 10}}
+GRID_SYMBOL_CONFIGS = {
+    "MUUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "BMNRUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "CRWVUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "INTCUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "AAOIUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "SKHYUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "GOOGLUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+    "BTCUSDT": {
+        "maxLeverage": 125,
+        "assetClass": "crypto",
+        "maxAggTradePages": 5000,
+    },
+    "ETHUSDT": {
+        "maxLeverage": 100,
+        "assetClass": "crypto",
+        "maxAggTradePages": 5000,
+    },
+    "SPCXUSDT": {"maxLeverage": 10, "assetClass": "stock"},
+}
 SUPPORTED_GRID_SYMBOLS = tuple(GRID_SYMBOL_CONFIGS)
 GAP_CANDIDATES = tuple(round(value / 1000, 3) for value in range(4, 13))
-RANGE_CANDIDATES = (0.06, 0.08, 0.10)
+RANGE_CANDIDATES = (0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.30)
 
 DEFAULT_INVESTMENT = 100_000.0
 DEFAULT_FEE_RATE = 0.0001  # One side: 0.01% (1 bp / 万分之一)
@@ -41,6 +60,7 @@ DAY_MINUTES = 24 * 60
 WEEK_MINUTES = 7 * DAY_MINUTES
 MARKET_CACHE_SECONDS = 60
 MARKET_STALE_SECONDS = 15 * 60
+MARKET_CACHE_MAX_SYMBOLS = 16
 
 HOUR_MS = 60 * MINUTE_MS
 DAY_MS = DAY_MINUTES * MINUTE_MS
@@ -50,6 +70,8 @@ AGG_ARCHIVE_MAX_BYTES = 512 * 1024 * 1024
 AGG_TRADE_MIN_REQUEST_INTERVAL = 0.55
 FINE_PATH_REFRESH_MS = 60_000
 FINE_PATH_RETRY_SECONDS = 60
+FINE_PATH_MAX_SYMBOLS = 3
+FINE_PATH_CONCURRENT_REFRESHES = 2
 
 _market_cache: dict[str, tuple[float, dict]] = {}
 _market_cache_lock = threading.Lock()
@@ -58,6 +80,7 @@ _market_fetch_locks_lock = threading.Lock()
 
 _fine_path_states: dict[str, dict] = {}
 _fine_path_lock = threading.Lock()
+_fine_path_refresh_semaphore = threading.Semaphore(FINE_PATH_CONCURRENT_REFRESHES)
 _agg_trade_request_lock = threading.Lock()
 _last_agg_trade_request_at = 0.0
 
@@ -156,6 +179,7 @@ def fetch_symbol_rules(symbol: str) -> dict:
         "pricePrecision": int(symbol_info.get("pricePrecision", 2)),
         "quantityPrecision": int(symbol_info.get("quantityPrecision", 2)),
         "maxLeverage": GRID_SYMBOL_CONFIGS[symbol]["maxLeverage"],
+        "assetClass": GRID_SYMBOL_CONFIGS[symbol]["assetClass"],
     }
 
 
@@ -319,6 +343,9 @@ def _load_agg_trade_window(
     progress_callback=None,
 ) -> dict:
     """Fetch every aggregate trade in a bounded window, in ascending ID order."""
+    max_pages = GRID_SYMBOL_CONFIGS.get(symbol, {}).get(
+        "maxAggTradePages", AGG_TRADE_MAX_PAGES
+    )
     archive_data = _load_completed_agg_archive(symbol, start_time_ms, end_time_ms)
     prices = array("d", archive_data["prices"] if archive_data else ())
     times = array("q", archive_data["times"] if archive_data else ())
@@ -352,7 +379,7 @@ def _load_agg_trade_window(
 
     bounded_page = True
     while page:
-        if pages > AGG_TRADE_MAX_PAGES:
+        if pages > max_pages:
             raise BinanceMarketDataError("24h aggTrades exceeded the safety page limit")
         page.sort(key=lambda item: item["id"])
         for item in page:
@@ -421,8 +448,14 @@ def _extend_agg_trade_window(
     last_id = existing["lastId"]
     pages = existing.get("pages", 0)
     cursor_id = last_id + 1
+    added_pages = 0
+    max_pages = GRID_SYMBOL_CONFIGS.get(symbol, {}).get(
+        "maxAggTradePages", AGG_TRADE_MAX_PAGES
+    )
 
     while True:
+        if added_pages >= max_pages:
+            raise BinanceMarketDataError("aggTrades refresh exceeded the safety page limit")
         page = _get_agg_trade_page(
             {
                 "symbol": symbol,
@@ -431,6 +464,7 @@ def _extend_agg_trade_window(
             }
         )
         pages += 1
+        added_pages += 1
         if not page:
             break
         page.sort(key=lambda item: item["id"])
@@ -492,7 +526,34 @@ def _update_fine_path_progress(
             state.update(progress=progress, pages=pages, tradeCount=trade_count)
 
 
+def _trim_fine_path_states_locked(preserve_symbol: str | None = None) -> None:
+    """Keep only the most recently used completed fine paths in memory."""
+    while len(_fine_path_states) > FINE_PATH_MAX_SYMBOLS:
+        candidates = [
+            (candidate_symbol, candidate_state)
+            for candidate_symbol, candidate_state in _fine_path_states.items()
+            if candidate_symbol != preserve_symbol
+            and candidate_state.get("thread") is None
+        ]
+        if not candidates:
+            return
+        oldest_symbol, _ = min(
+            candidates,
+            key=lambda item: item[1].get(
+                "lastAccessAt", item[1].get("completedAt", 0.0)
+            ),
+        )
+        del _fine_path_states[oldest_symbol]
+
+
 def _run_fine_path_refresh(symbol: str, start_time_ms: int, end_time_ms: int) -> None:
+    with _fine_path_refresh_semaphore:
+        _perform_fine_path_refresh(symbol, start_time_ms, end_time_ms)
+
+
+def _perform_fine_path_refresh(
+    symbol: str, start_time_ms: int, end_time_ms: int
+) -> None:
     callback = lambda current, pages, count: _update_fine_path_progress(
         symbol, start_time_ms, end_time_ms, current, pages, count
     )
@@ -516,6 +577,7 @@ def _run_fine_path_refresh(symbol: str, start_time_ms: int, end_time_ms: int) ->
                 error=str(exc),
                 lastAttemptAt=time.monotonic(),
             )
+            _trim_fine_path_states_locked(preserve_symbol=symbol)
         return
 
     with _fine_path_lock:
@@ -531,6 +593,7 @@ def _run_fine_path_refresh(symbol: str, start_time_ms: int, end_time_ms: int) ->
             lastAttemptAt=time.monotonic(),
             completedAt=time.time(),
         )
+        _trim_fine_path_states_locked(preserve_symbol=symbol)
 
 
 def get_fine_path_snapshot(
@@ -550,8 +613,11 @@ def get_fine_path_snapshot(
                 "data": None,
                 "error": None,
                 "lastAttemptAt": 0.0,
+                "lastAccessAt": 0.0,
             },
         )
+        state["lastAccessAt"] = time.monotonic()
+        _trim_fine_path_states_locked(preserve_symbol=symbol)
         data = state.get("data")
         running = state.get("thread") is not None
         needs_refresh = data is None or (
@@ -720,6 +786,11 @@ def get_market_snapshot(symbol: str, force_refresh: bool = False) -> dict:
         snapshot["serverTime"] = server_time_ms
         with _market_cache_lock:
             _market_cache[symbol] = (time.time(), snapshot)
+            while len(_market_cache) > MARKET_CACHE_MAX_SYMBOLS:
+                oldest_symbol = min(
+                    _market_cache, key=lambda item: _market_cache[item][0]
+                )
+                del _market_cache[oldest_symbol]
         return _attach_fine_path(snapshot, cache_hit=False)
 
 
