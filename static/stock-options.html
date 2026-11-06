@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>美股期权收益 — Optiondata</title>
+  <link rel="stylesheet" href="/static/stock-options.css">
+  <script defer src="/static/stock-options-math.js"></script>
+  <script defer src="/static/stock-options.js"></script>
+</head>
+<body>
+<nav aria-label="主要导航" class="nav-bar">
+  <a href="/">双币对比</a><a href="/options">币安期权行情</a>
+  <a href="/deribit">Deribit期权行情</a><a href="/grid">永续网格优化</a>
+  <a href="/stock-options" aria-current="page">美股期权收益</a>
+</nav>
+<header><div><p class="eyebrow">BINANCE · STOCK OPTIONS</p><h1>美股期权收益</h1>
+  <p class="muted">比较现金担保卖 PUT 与持股卖 CALL 的权利金收益。</p></div>
+  <a id="official" class="button" href="https://www.binance.com/en/stocks/options/EQ_MSTR" target="_blank" rel="noopener noreferrer">在币安查看 ↗</a>
+</header>
+<div class="workspace">
+  <aside class="panel" aria-label="股票目录">
+    <div class="section-title"><h2>选择股票</h2><button id="retryCatalog" title="重新读取股票目录">重试</button></div>
+    <p id="catalogCount" class="muted small" role="status">正在读取币安目录…</p>
+    <label for="search">股票代码或名称</label><input id="search" type="search" placeholder="搜索 MSTR、NVIDIA…" autocomplete="off">
+    <label for="assetType">品种</label><select id="assetType"><option value="STOCK">股票</option><option value="ETF">ETF</option><option value="ALL">全部品种</option></select>
+    <label class="check"><input type="checkbox" id="favoritesOnly">只看关注</label>
+    <div id="stocks" class="stock-list"></div>
+    <div class="pager"><button id="stockPrev" aria-label="上一页股票">上一页</button><span id="stockPage" class="small"></span><button id="stockNext" aria-label="下一页股票">下一页</button></div>
+    <p class="small muted">目录每小时自动同步。关注列表保存在当前浏览器。</p>
+  </aside>
+  <main>
+    <section class="panel">
+      <div class="section-title"><div><h2 id="stockTitle">MSTR</h2><p id="stockName" class="muted small">请选择股票</p></div><button id="favorite" aria-pressed="false">关注</button></div>
+      <div class="controls">
+        <div><label for="expiration">到期日（美东日期）</label><select id="expiration" disabled><option>加载中…</option></select></div>
+        <div><label for="strategy">卖出策略</label><select id="strategy"><option value="PUT">卖 PUT · 现金担保</option><option value="CALL">卖 CALL · 持股备兑</option></select></div>
+        <div><label for="fee">每张预估开仓费用（美元）</label><input id="fee" type="number" min="0" step="0.01" value="0.60"><span class="small muted">可按实际费率修改</span></div>
+        <button id="refresh" class="primary">刷新行情</button>
+      </div>
+      <div id="status" role="status" aria-live="polite" class="notice">正在加载…</div>
+      <div class="summary"><div><span>股票参考价</span><strong id="spot">—</strong></div><div><span>当前到期日合约</span><strong id="contractCount">—</strong></div><div><span>报价读取时间（本地）</span><strong id="fetchedAt">—</strong></div></div>
+      <p id="market" class="small muted"></p>
+    </section>
+    <section class="panel results">
+      <div class="section-title"><h2>权利金比较</h2><span id="resultCount" class="small muted"></span></div>
+      <div class="filters">
+        <label class="check"><input id="otmOnly" type="checkbox" checked>只看虚值</label>
+        <label class="check"><input id="bidOnly" type="checkbox" checked>只看有效报价</label>
+        <label for="sort">排序</label><select id="sort"><option value="distance">距现价最近</option><option value="apr">年化从高到低</option><option value="yield">期间收益率从高到低</option><option value="strike">行权价从低到高</option></select>
+      </div>
+      <p class="small muted mobile-hint">左右滑动表格可查看收益率及合约详情。</p>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="期权收益比较，可横向滚动">
+        <table><thead><tr><th>行权价 / 距现价</th><th>Bid / Ask</th><th>买量 / 卖量</th><th>净权利金 / 张</th><th>占用资金 / 张</th><th>期间收益率</th><th>单利年化</th><th>IV / Delta</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table>
+      </div>
+      <p id="empty" class="empty" hidden>当前条件没有合约。可切换到期日或放宽筛选。</p>
+      <div class="pager"><button id="prev">上一页</button><span id="page" class="small"></span><button id="next">下一页</button></div>
+    </section>
+    <details class="panel methodology"><summary>收益怎么算？</summary>
+      <p>净权利金 = Bid × 合约乘数 − 每张预估开仓费用。费用默认 $0.60，仅作估算；请按实际佣金与其他开仓费用调整，不包含未来平仓、行权或换汇费用。</p>
+      <p>卖 PUT：占用资金 = 行权价 × 合约乘数。卖 CALL：占用资金按股票参考市值计算，需要持有对应数量的股票；不是保证金杠杆收益。</p>
+      <p>期间收益率 = 净权利金 ÷ 占用资金。单利年化 = 期间收益率 × 365 ÷ 剩余天数；不足一天不显示年化。年化不代表可以持续实现的回报。</p>
+      <p>这是权利金收入比较，不包含股票涨跌损益。实值 CALL 的权利金含内在价值，应同时查看详情中的被行权总收益。卖 PUT 可能被指派买入股票，备兑 CALL 仍承担股票下跌风险。</p>
+      <p>行情来自币安网站。读取时间不是交易所报价时间；接口未提供报价时间，无法确认报价新鲜度。非交易时段可能保留上一交易日快照，股票盘前价格也可能与期权报价不同步。最终以币安订单预览为准。</p>
+    </details>
+  </main>
+</div>
+<dialog id="detail"><div class="section-title"><h2>合约详情</h2><button id="closeDetail">关闭</button></div><div id="detailBody"></div></dialog>
+</body>
+</html>

@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 import requests
 from flask import Flask, jsonify, request, send_from_directory
+import equity_options
 
 from grid_optimizer import (
     DEFAULT_FEE_RATE,
@@ -448,6 +449,33 @@ def health():
         "ok": True,
         "apiKeyConfigured": bool(BINANCE_API_KEY and BINANCE_API_SECRET),
     })
+
+
+@app.route("/stock-options")
+def stock_options_page():
+    return send_from_directory("static", "stock-options.html")
+
+
+@app.route("/api/stock-options/<action>")
+def stock_options_api(action):
+    try:
+        symbol = request.args.get("symbol", "MSTR").strip().upper()
+        if action == "catalog":
+            data = equity_options.catalog()
+        elif action == "overview":
+            data = equity_options.overview(symbol)
+        elif action == "chain":
+            data = equity_options.chain(symbol, request.args.get("expiration", ""),
+                                        request.args.get("root", symbol))
+        elif action == "contract":
+            data = equity_options.contract_details(symbol, request.args.get("contract", ""))
+        else:
+            return jsonify({"ok": False, "error": "Unknown endpoint"}), 404
+        return jsonify({"ok": True, **data})
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except equity_options.EquityDataError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 502
 
 
 @app.route("/api/spot-price")
